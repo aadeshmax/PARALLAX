@@ -16,7 +16,7 @@ export const App: React.FC = () => {
   const [status, setStatus] = useState<EarthdataStatus | null>(null);
   const [datasets, setDatasets] = useState<DatasetInfo[]>([]);
   const [cases, setCases] = useState<CaseStudy[]>([]);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('demo_flood_case');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('real_event_rio_grande_do_sul');
   const [metrics, setMetrics] = useState<AnalysisMetrics | null>(null);
   const [geojsonData, setGeojsonData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);

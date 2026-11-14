@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { AnalysisMetrics, CaseStudy } from '../types';
-import { Layers, Compass, Eye, ShieldAlert, Sparkles, MapPin, Sliders } from 'lucide-react';
+import { Layers, Compass, MapPin, Sparkles, ShieldAlert } from 'lucide-react';
 
 interface MapViewerProps {
   metrics: AnalysisMetrics | null;
@@ -41,6 +41,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const currentLoadedCaseRef = useRef<string | null>(null);
+  const isMapLoadedRef = useRef<boolean>(false);
 
   const [basemap, setBasemap] = useState<'satellite' | 'dark'>('satellite');
   const [is3D, setIs3D] = useState<boolean>(true);
@@ -49,21 +51,24 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const [localSwipe, setLocalSwipe] = useState<number>(sliderPos);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceInfo | null>(null);
 
-  // Sync external sliderPos
+  // Sync external slider
   useEffect(() => {
     setLocalSwipe(sliderPos);
   }, [sliderPos]);
 
-  // Determine initial coordinates based on case
-  const getCaseCenterAndZoom = (): { center: [number, number]; zoom: number } => {
-    if (caseId === 'real_event_rio_grande_do_sul') {
+  // Coordinate resolution per case
+  const getCaseCenterAndZoom = (targetCaseId: string): { center: [number, number]; zoom: number } => {
+    if (targetCaseId === 'real_event_rio_grande_do_sul') {
       return { center: [-51.3676, -29.8705], zoom: 12 };
     }
-    if (caseId === 'mumbai_monsoon_event') {
+    if (targetCaseId === 'mumbai_monsoon_event') {
       return { center: [72.9038, 19.1206], zoom: 12 };
     }
-    if (caseId === 'chennai_live_case') {
+    if (targetCaseId === 'chennai_live_case') {
       return { center: [80.12, 13.08], zoom: 12 };
+    }
+    if (targetCaseId === 'demo_flood_case') {
+      return { center: [-4.624, 49.042], zoom: 11 };
     }
     if (currentCase && currentCase.center) {
       const c = currentCase.center;
@@ -72,11 +77,30 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     return { center: [-51.3676, -29.8705], zoom: 12 };
   };
 
-  // 1. Initialize MapLibre GL Map
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+  // Safe removal helper
+  const safelyRemoveLayerAndSource = (map: maplibregl.Map, layerId: string, sourceId: string) => {
+    try {
+      if (map.getLayer(layerId)) {
+        map.removeLayer(layerId);
+      }
+    } catch (e) {
+      // Ignore
+    }
+    try {
+      if (map.getSource(sourceId)) {
+        map.removeSource(sourceId);
+      }
+    } catch (e) {
+      // Ignore
+    }
+  };
 
-    const { center, zoom } = getCaseCenterAndZoom();
+  // 1. Initialize MapLibre GL Map (Once)
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    if (mapRef.current) return; // Prevent double initialization
+
+    const { center, zoom } = getCaseCenterAndZoom(caseId);
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -139,292 +163,349 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: true }), 'top-right');
 
     map.on('load', () => {
+      isMapLoadedRef.current = true;
       mapRef.current = map;
+      setupInteractions(map);
       loadCaseData(map, caseId);
+      setTimeout(() => map.resize(), 150);
     });
 
     // Handle container resizing
     const resizeObserver = new ResizeObserver(() => {
-      map.resize();
+      if (mapRef.current) {
+        mapRef.current.resize();
+      }
     });
     resizeObserver.observe(mapContainerRef.current);
 
     return () => {
       resizeObserver.disconnect();
-      map.remove();
+      isMapLoadedRef.current = false;
+      try {
+        map.remove();
+      } catch (e) {
+        // Ignore during teardown
+      }
       mapRef.current = null;
     };
   }, []);
 
-  // 2. Load / Update Case Tiles & GeoJSON
+  // 2. Setup Event Handlers (Only Once)
+  const setupInteractions = (map: maplibregl.Map) => {
+    map.on('click', 'candidates-fill', (e) => {
+      if (!e.features || !e.features[0]) return;
+      const p = e.features[0].properties as any;
+      setSelectedEvidence({
+        className: p.class_name || (p.class_id === 2 ? 'Inundated Veg (Double-Bounce)' : 'Confirmed Open Water'),
+        classId: Number(p.class_id) || 1,
+        areaHa: Number(p.area_ha) || 0.45,
+        detectionMechanism: p.detection_mechanism || 'Radar backscatter dihedral reflection',
+        crossProductContext: p.cross_product_context || 'Complementary radar sensitivity under canopy',
+        evidenceTier: p.evidence_tier || 'High backscatter signature',
+        scientificLabel: p.scientific_label || 'Candidate Inundation (Unverified ground-truth)'
+      });
+    });
+
+    map.on('mouseenter', 'candidates-fill', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'candidates-fill', () => {
+      map.getCanvas().style.cursor = '';
+    });
+  };
+
+  // 3. Load / Update Case Tiles & GeoJSON
   const loadCaseData = async (map: maplibregl.Map, activeCaseId: string) => {
-    // Clean existing case sources and layers
-    const layerIds = [
-      'pre-sar-layer',
-      'post-sar-layer',
-      'diff-db-layer',
-      'opera-water-layer',
-      'gap-overlay-layer',
-      'candidates-fill',
-      'candidates-line'
-    ];
-    layerIds.forEach(id => {
-      if (map.getLayer(id)) map.removeLayer(id);
-    });
+    if (!map || !map.isStyleLoaded()) return;
 
-    const sourceIds = [
-      'pre-sar',
-      'post-sar',
-      'diff-db',
-      'opera-water',
-      'gap-overlay',
-      'candidates-geojson'
-    ];
-    sourceIds.forEach(id => {
-      if (map.getSource(id)) map.removeSource(id);
-    });
+    // A. Recreate Raster Sources ONLY if caseId changed
+    if (currentLoadedCaseRef.current !== activeCaseId) {
+      currentLoadedCaseRef.current = activeCaseId;
 
-    // A. Add Raster Tile Layers from /data/cases/{caseId}/tiles/
-    const baseUrl = `/data/cases/${activeCaseId}/tiles`;
-
-    try {
-      // 1. Pre-SAR
-      map.addSource('pre-sar', {
-        type: 'raster',
-        tiles: [`${baseUrl}/pre_sar/{z}/{x}/{y}.png`],
-        tileSize: 256,
-        minzoom: 11,
-        maxzoom: 14
-      });
-      map.addLayer({
-        id: 'pre-sar-layer',
-        type: 'raster',
-        source: 'pre-sar',
-        paint: {
-          'raster-opacity': (radarOpacity / 100) * (1 - localSwipe / 100)
-        }
+      const rasterLayers = [
+        ['gap-overlay-layer', 'gap-overlay'],
+        ['opera-water-layer', 'opera-water'],
+        ['diff-db-layer', 'diff-db'],
+        ['post-sar-layer', 'post-sar'],
+        ['pre-sar-layer', 'pre-sar']
+      ];
+      rasterLayers.forEach(([layerId, sourceId]) => {
+        safelyRemoveLayerAndSource(map, layerId, sourceId);
       });
 
-      // 2. Post-SAR
-      map.addSource('post-sar', {
-        type: 'raster',
-        tiles: [`${baseUrl}/post_sar/{z}/{x}/{y}.png`],
-        tileSize: 256,
-        minzoom: 11,
-        maxzoom: 14
-      });
-      map.addLayer({
-        id: 'post-sar-layer',
-        type: 'raster',
-        source: 'post-sar',
-        paint: {
-          'raster-opacity': (radarOpacity / 100) * (localSwipe / 100)
-        }
-      });
+      const baseUrl = `/data/cases/${activeCaseId}/tiles`;
 
-      // 3. Diff dB
-      map.addSource('diff-db', {
-        type: 'raster',
-        tiles: [`${baseUrl}/diff_db/{z}/{x}/{y}.png`],
-        tileSize: 256,
-        minzoom: 11,
-        maxzoom: 14
-      });
-      map.addLayer({
-        id: 'diff-db-layer',
-        type: 'raster',
-        source: 'diff-db',
-        layout: { visibility: layers.showCompareSlider ? 'visible' : 'none' },
-        paint: { 'raster-opacity': 0.75 }
-      });
-
-      // 4. OPERA Water
-      map.addSource('opera-water', {
-        type: 'raster',
-        tiles: [`${baseUrl}/opera_water/{z}/{x}/{y}.png`],
-        tileSize: 256,
-        minzoom: 11,
-        maxzoom: 14
-      });
-      map.addLayer({
-        id: 'opera-water-layer',
-        type: 'raster',
-        source: 'opera-water',
-        layout: { visibility: layers.showOperaWater ? 'visible' : 'none' },
-        paint: { 'raster-opacity': 0.85 }
-      });
-
-      // 5. Gap Overlay
-      map.addSource('gap-overlay', {
-        type: 'raster',
-        tiles: [`${baseUrl}/gap_overlay/{z}/{x}/{y}.png`],
-        tileSize: 256,
-        minzoom: 11,
-        maxzoom: 14
-      });
-      map.addLayer({
-        id: 'gap-overlay-layer',
-        type: 'raster',
-        source: 'gap-overlay',
-        layout: { visibility: layers.showCrossSensorGap ? 'visible' : 'none' },
-        paint: { 'raster-opacity': 0.90 }
-      });
-    } catch (e) {
-      console.warn("Tile layer ingestion notice:", e);
-    }
-
-    // B. Ingest Candidate Vector Polygons (GeoJSON)
-    let geojsonToUse = geojsonData;
-    if (!geojsonToUse) {
       try {
-        const directRes = await fetch(`/data/cases/${activeCaseId}/regions.geojson`);
-        if (directRes.ok) {
-          geojsonToUse = await directRes.json();
-        }
+        // 1. Pre-SAR
+        map.addSource('pre-sar', {
+          type: 'raster',
+          tiles: [`${baseUrl}/pre_sar/{z}/{x}/{y}.png`],
+          tileSize: 256,
+          minzoom: 11,
+          maxzoom: 14
+        });
+        map.addLayer({
+          id: 'pre-sar-layer',
+          type: 'raster',
+          source: 'pre-sar',
+          paint: {
+            'raster-opacity': (radarOpacity / 100) * (1 - localSwipe / 100)
+          }
+        });
+
+        // 2. Post-SAR
+        map.addSource('post-sar', {
+          type: 'raster',
+          tiles: [`${baseUrl}/post_sar/{z}/{x}/{y}.png`],
+          tileSize: 256,
+          minzoom: 11,
+          maxzoom: 14
+        });
+        map.addLayer({
+          id: 'post-sar-layer',
+          type: 'raster',
+          source: 'post-sar',
+          paint: {
+            'raster-opacity': (radarOpacity / 100) * (localSwipe / 100)
+          }
+        });
+
+        // 3. Diff dB
+        map.addSource('diff-db', {
+          type: 'raster',
+          tiles: [`${baseUrl}/diff_db/{z}/{x}/{y}.png`],
+          tileSize: 256,
+          minzoom: 11,
+          maxzoom: 14
+        });
+        map.addLayer({
+          id: 'diff-db-layer',
+          type: 'raster',
+          source: 'diff-db',
+          layout: { visibility: layers.showCompareSlider ? 'visible' : 'none' },
+          paint: { 'raster-opacity': 0.75 }
+        });
+
+        // 4. OPERA Water
+        map.addSource('opera-water', {
+          type: 'raster',
+          tiles: [`${baseUrl}/opera_water/{z}/{x}/{y}.png`],
+          tileSize: 256,
+          minzoom: 11,
+          maxzoom: 14
+        });
+        map.addLayer({
+          id: 'opera-water-layer',
+          type: 'raster',
+          source: 'opera-water',
+          layout: { visibility: layers.showOperaWater ? 'visible' : 'none' },
+          paint: { 'raster-opacity': 0.85 }
+        });
+
+        // 5. Gap Overlay
+        map.addSource('gap-overlay', {
+          type: 'raster',
+          tiles: [`${baseUrl}/gap_overlay/{z}/{x}/{y}.png`],
+          tileSize: 256,
+          minzoom: 11,
+          maxzoom: 14
+        });
+        map.addLayer({
+          id: 'gap-overlay-layer',
+          type: 'raster',
+          source: 'gap-overlay',
+          layout: { visibility: layers.showCrossSensorGap ? 'visible' : 'none' },
+          paint: { 'raster-opacity': 0.90 }
+        });
       } catch (e) {
-        console.warn("Direct regions.geojson load notice:", e);
+        console.warn("Notice loading raster tiles:", e);
       }
     }
 
-    if (geojsonToUse && geojsonToUse.features && geojsonToUse.features.length > 0) {
-      map.addSource('candidates-geojson', {
-        type: 'geojson',
-        data: geojsonToUse
-      });
-
-      map.addLayer({
-        id: 'candidates-fill',
-        type: 'fill',
-        source: 'candidates-geojson',
-        paint: {
-          'fill-color': [
-            'match',
-            ['get', 'class_id'],
-            2, '#fbbf24', // Amber for Inundated Veg / Canopy Gap
-            1, '#06b6d4', // Cyan for Confirmed Open Water
-            4, '#f97316', // Orange for Candidate Open Water
-            '#a855f7'
-          ],
-          'fill-opacity': 0.55
+    // B. Ingest / Update GeoJSON Data safely
+    let dataToLoad = geojsonData;
+    if (!dataToLoad) {
+      try {
+        const res = await fetch(`/data/cases/${activeCaseId}/regions.geojson`);
+        if (res.ok) {
+          dataToLoad = await res.json();
         }
-      });
-
-      map.addLayer({
-        id: 'candidates-line',
-        type: 'line',
-        source: 'candidates-geojson',
-        paint: {
-          'line-color': [
-            'match',
-            ['get', 'class_id'],
-            2, '#fde68a',
-            1, '#67e8f9',
-            '#ffffff'
-          ],
-          'line-width': 1.5,
-          'line-opacity': 0.9
-        }
-      });
-
-      // Interactive Click on Polygons
-      map.on('click', 'candidates-fill', (e) => {
-        if (!e.features || !e.features[0]) return;
-        const p = e.features[0].properties as any;
-        setSelectedEvidence({
-          className: p.class_name || (p.class_id === 2 ? 'Inundated Veg (Double-Bounce)' : 'Confirmed Open Water'),
-          classId: Number(p.class_id) || 1,
-          areaHa: Number(p.area_ha) || 0.45,
-          detectionMechanism: p.detection_mechanism || 'Radar backscatter dihedral dihedral reflection',
-          crossProductContext: p.cross_product_context || 'Complementary radar sensitivity under canopy',
-          evidenceTier: p.evidence_tier || 'High backscatter signature',
-          scientificLabel: p.scientific_label || 'Candidate Inundation (Unverified ground-truth)'
-        });
-      });
-
-      map.on('mouseenter', 'candidates-fill', () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', 'candidates-fill', () => {
-        map.getCanvas().style.cursor = '';
-      });
+      } catch (e) {
+        console.warn("Notice loading fallback regions.geojson:", e);
+      }
     }
 
-    // Ensure labels stay above rasters
-    if (map.getLayer('basemap-labels')) {
-      map.moveLayer('basemap-labels');
+    if (dataToLoad && dataToLoad.features) {
+      try {
+        const existingSource = map.getSource('candidates-geojson') as maplibregl.GeoJSONSource | undefined;
+        if (existingSource && typeof existingSource.setData === 'function') {
+          // Smooth update without recreating source
+          existingSource.setData(dataToLoad);
+        } else {
+          safelyRemoveLayerAndSource(map, 'candidates-line', 'candidates-geojson');
+          safelyRemoveLayerAndSource(map, 'candidates-fill', 'candidates-geojson');
+
+          map.addSource('candidates-geojson', {
+            type: 'geojson',
+            data: dataToLoad
+          });
+
+          map.addLayer({
+            id: 'candidates-fill',
+            type: 'fill',
+            source: 'candidates-geojson',
+            paint: {
+              'fill-color': [
+                'match',
+                ['get', 'class_id'],
+                2, '#fbbf24',
+                1, '#06b6d4',
+                4, '#f97316',
+                '#a855f7'
+              ],
+              'fill-opacity': 0.55
+            }
+          });
+
+          map.addLayer({
+            id: 'candidates-line',
+            type: 'line',
+            source: 'candidates-geojson',
+            paint: {
+              'line-color': [
+                'match',
+                ['get', 'class_id'],
+                2, '#fde68a',
+                1, '#67e8f9',
+                '#ffffff'
+              ],
+              'line-width': 1.5,
+              'line-opacity': 0.9
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Notice updating GeoJSON source:", e);
+      }
+    }
+
+    // Ensure labels stay on top
+    try {
+      if (map.getLayer('basemap-labels')) {
+        map.moveLayer('basemap-labels');
+      }
+    } catch (e) {
+      // Ignore
     }
   };
 
-  // 3. React to Case Switch
+  // 4. Handle Case Switch (flyTo + loadCaseData)
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !isMapLoadedRef.current) return;
 
-    const { center, zoom } = getCaseCenterAndZoom();
-    map.flyTo({
-      center: center,
-      zoom: zoom,
-      pitch: is3D ? 52 : 0,
-      bearing: is3D ? -15 : 0,
-      essential: true
-    });
+    const { center, zoom } = getCaseCenterAndZoom(caseId);
+    try {
+      map.flyTo({
+        center: center,
+        zoom: zoom,
+        pitch: is3D ? 52 : 0,
+        bearing: is3D ? -15 : 0,
+        speed: 1.2,
+        curve: 1.4,
+        essential: true
+      });
+    } catch (e) {
+      // Ignore
+    }
 
     loadCaseData(map, caseId);
-  }, [caseId, geojsonData]);
+  }, [caseId]);
 
-  // 4. Update Layer Visibilities
+  // 5. Handle GeoJSON Prop Updates (Without triggering raster reload)
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !isMapLoadedRef.current) return;
 
-    if (map.getLayer('opera-water-layer')) {
-      map.setLayoutProperty('opera-water-layer', 'visibility', layers.showOperaWater ? 'visible' : 'none');
+    if (geojsonData && geojsonData.features) {
+      try {
+        const source = map.getSource('candidates-geojson') as maplibregl.GeoJSONSource | undefined;
+        if (source && typeof source.setData === 'function') {
+          source.setData(geojsonData);
+        } else {
+          loadCaseData(map, caseId);
+        }
+      } catch (e) {
+        // Ignore
+      }
     }
-    if (map.getLayer('gap-overlay-layer')) {
-      map.setLayoutProperty('gap-overlay-layer', 'visibility', layers.showCrossSensorGap ? 'visible' : 'none');
-    }
-    if (map.getLayer('diff-db-layer')) {
-      map.setLayoutProperty('diff-db-layer', 'visibility', layers.showCompareSlider ? 'visible' : 'none');
-    }
-    if (map.getLayer('candidates-fill')) {
-      map.setLayoutProperty(
-        'candidates-fill',
-        'visibility',
-        layers.showOpenWater || layers.showInundatedVeg ? 'visible' : 'none'
-      );
-    }
-    if (map.getLayer('candidates-line')) {
-      map.setLayoutProperty(
-        'candidates-line',
-        'visibility',
-        layers.showOpenWater || layers.showInundatedVeg ? 'visible' : 'none'
-      );
+  }, [geojsonData]);
+
+  // 6. Update Layer Visibilities
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapLoadedRef.current) return;
+
+    try {
+      if (map.getLayer('opera-water-layer')) {
+        map.setLayoutProperty('opera-water-layer', 'visibility', layers.showOperaWater ? 'visible' : 'none');
+      }
+      if (map.getLayer('gap-overlay-layer')) {
+        map.setLayoutProperty('gap-overlay-layer', 'visibility', layers.showCrossSensorGap ? 'visible' : 'none');
+      }
+      if (map.getLayer('diff-db-layer')) {
+        map.setLayoutProperty('diff-db-layer', 'visibility', layers.showCompareSlider ? 'visible' : 'none');
+      }
+      if (map.getLayer('candidates-fill')) {
+        map.setLayoutProperty(
+          'candidates-fill',
+          'visibility',
+          layers.showOpenWater || layers.showInundatedVeg ? 'visible' : 'none'
+        );
+      }
+      if (map.getLayer('candidates-line')) {
+        map.setLayoutProperty(
+          'candidates-line',
+          'visibility',
+          layers.showOpenWater || layers.showInundatedVeg ? 'visible' : 'none'
+        );
+      }
+    } catch (e) {
+      // Ignore
     }
   }, [layers]);
 
-  // 5. Update Opacities & Swipe
+  // 7. Update Opacities & Swipe
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !isMapLoadedRef.current) return;
 
     const baseOp = radarOpacity / 100;
     const swipeRatio = localSwipe / 100;
 
-    if (map.getLayer('pre-sar-layer')) {
-      map.setPaintProperty('pre-sar-layer', 'raster-opacity', baseOp * (1 - swipeRatio));
-    }
-    if (map.getLayer('post-sar-layer')) {
-      map.setPaintProperty('post-sar-layer', 'raster-opacity', baseOp * swipeRatio);
+    try {
+      if (map.getLayer('pre-sar-layer')) {
+        map.setPaintProperty('pre-sar-layer', 'raster-opacity', baseOp * (1 - swipeRatio));
+      }
+      if (map.getLayer('post-sar-layer')) {
+        map.setPaintProperty('post-sar-layer', 'raster-opacity', baseOp * swipeRatio);
+      }
+    } catch (e) {
+      // Ignore
     }
   }, [radarOpacity, localSwipe]);
 
-  // 6. Basemap & Tilt Toggles
+  // 8. Basemap & Tilt Toggles
   const handleBasemapChange = (type: 'satellite' | 'dark') => {
     const map = mapRef.current;
     if (!map) return;
     setBasemap(type);
-    map.setLayoutProperty('basemap-satellite', 'visibility', type === 'satellite' ? 'visible' : 'none');
-    map.setLayoutProperty('basemap-dark', 'visibility', type === 'dark' ? 'visible' : 'none');
+    try {
+      map.setLayoutProperty('basemap-satellite', 'visibility', type === 'satellite' ? 'visible' : 'none');
+      map.setLayoutProperty('basemap-dark', 'visibility', type === 'dark' ? 'visible' : 'none');
+    } catch (e) {
+      // Ignore
+    }
   };
 
   const toggleTilt = () => {
@@ -432,11 +513,15 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     if (!map) return;
     const new3D = !is3D;
     setIs3D(new3D);
-    map.easeTo({
-      pitch: new3D ? 52 : 0,
-      bearing: new3D ? -15 : 0,
-      duration: 1000
-    });
+    try {
+      map.easeTo({
+        pitch: new3D ? 52 : 0,
+        bearing: new3D ? -15 : 0,
+        duration: 900
+      });
+    } catch (e) {
+      // Ignore
+    }
   };
 
   const toggleLabels = () => {
@@ -444,13 +529,21 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     if (!map) return;
     const next = !showLabels;
     setShowLabels(next);
-    map.setLayoutProperty('basemap-labels', 'visibility', next ? 'visible' : 'none');
+    try {
+      map.setLayoutProperty('basemap-labels', 'visibility', next ? 'visible' : 'none');
+    } catch (e) {
+      // Ignore
+    }
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-[#080d1a]">
-      {/* Map Container */}
-      <div ref={mapContainerRef} className="w-full h-full z-0" />
+    <div className="relative w-full h-full flex flex-col overflow-hidden bg-[#080d1a]" style={{ minHeight: '100%' }}>
+      {/* Map Canvas with absolute positioning ensuring 100% dimensions */}
+      <div
+        ref={mapContainerRef}
+        className="w-full h-full z-0"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
 
       {/* Floating On-Map Toolbar */}
       <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700/80 shadow-2xl font-mono text-xs">
