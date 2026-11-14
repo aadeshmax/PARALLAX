@@ -145,7 +145,7 @@ export const App: React.FC = () => {
       />
 
       {/* 2. Main Workspace */}
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 overflow-hidden relative w-full h-[calc(100vh-4rem)]">
         {/* Left Control Sidebar */}
         {isSidebarOpen && (
           <Sidebar
