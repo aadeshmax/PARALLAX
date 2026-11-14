@@ -1,7 +1,9 @@
 {
   "schema_version": "2.0.0",
   "case_id": "real_event_rio_grande_do_sul",
-  "event_name": "Rio Grande do Sul Flood (May 2024)",
+  "title": "Rio Grande do Sul Historic Flood (May 2024)",
+  "event_name": "Rio Grande do Sul Historic Flood (May 2024)",
+  "location": "Taquari-Antas & Jacuí Basin, Rio Grande do Sul, Brazil (UTM 22S)",
   "aoi_bbox": [
     -51.414362,
     -29.911299,

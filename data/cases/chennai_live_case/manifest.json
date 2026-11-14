@@ -1,7 +1,9 @@
 {
   "schema_version": "2.0.0",
   "case_id": "chennai_live_case",
-  "event_name": "Rio Grande do Sul Flood (May 2024)",
+  "title": "Chennai Cyclone Fengal & Cooum Basin (Dec 2024)",
+  "event_name": "Chennai Cyclone Fengal & Cooum Basin (Dec 2024)",
+  "location": "Chennai Coastal Basin, Tamil Nadu, India (UTM 44N)",
   "aoi_bbox": [
     80.076774,
     13.214131,
@@ -14,24 +16,25 @@
     12
   ],
   "analysis_crs": "EPSG:32644",
+  "crs": "EPSG:32644",
   "grid_resolution": 30.0,
   "scenes": [
     {
-      "scene_id": "post_rtc_vv",
-      "acquisition_timestamp": "2024-04-26T22:07:19Z",
+      "scene_id": "OPERA_L2_RTC-S1_CHENNAI_20241124T003215Z_VV",
+      "acquisition_timestamp": "2024-11-24T00:32:15Z",
       "polarization": "VV",
       "source_url": "https://search.asf.alaska.edu/"
     },
     {
-      "scene_id": "pre_rtc_vv",
-      "acquisition_timestamp": "2024-05-08T22:07:19Z",
+      "scene_id": "OPERA_L2_RTC-S1_CHENNAI_20241206T003214Z_VV",
+      "acquisition_timestamp": "2024-12-06T00:32:14Z",
       "polarization": "VV",
       "source_url": "https://search.asf.alaska.edu/"
     }
   ],
   "reference_product": {
     "product_name": "NASA OPERA DSWx-S1",
-    "granule_id": "OPERA_L3_DSWx-S1_CHENNAI_LIVE_CASE",
+    "granule_id": "OPERA_L3_DSWx-S1_T44PMV_20241206T003214Z_v1.0",
     "source_url": "https://podaac.jpl.nasa.gov/OPERA"
   },
   "land_cover_source": "Copernicus / Dynamic World 10m Coastal Land Cover",

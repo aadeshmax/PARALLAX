@@ -65,7 +65,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       return { center: [72.9038, 19.1206], zoom: 12 };
     }
     if (targetCaseId === 'chennai_live_case') {
-      return { center: [80.12, 13.08], zoom: 12 };
+      return { center: [80.1185, 13.2550], zoom: 12 };
     }
     if (targetCaseId === 'demo_flood_case') {
       return { center: [-4.624, 49.042], zoom: 11 };

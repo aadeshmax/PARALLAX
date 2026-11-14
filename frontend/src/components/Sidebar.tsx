@@ -33,6 +33,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const currentCase = cases.find(c => c.case_id === selectedCaseId) || cases[0];
 
+  const getCaseDisplayTitle = (c: CaseStudy) => {
+    if (c.case_id === 'real_event_rio_grande_do_sul') return '📍 Rio Grande do Sul Flood (May 2024)';
+    if (c.case_id === 'mumbai_monsoon_event') return '📍 Mumbai Monsoon & Mangroves (July 2023)';
+    if (c.case_id === 'chennai_live_case') return '📍 Chennai Cyclone Fengal Flood (Dec 2024)';
+    if (c.case_id === 'demo_flood_case') return '📍 NASA OPERA Demo (Brittany Basin)';
+    return c.title || c.event_name || c.case_id;
+  };
+
   return (
     <aside className="w-[340px] min-w-[340px] max-w-[340px] border-r border-radar-border bg-radar-card flex flex-col h-[calc(100vh-4rem)] overflow-y-auto p-4 space-y-5 text-sm shrink-0">
       
@@ -49,15 +57,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           {cases.map((c) => (
             <option key={c.case_id} value={c.case_id}>
-              {c.title || c.event_name || c.case_id}
+              {getCaseDisplayTitle(c)}
             </option>
           ))}
         </select>
         {currentCase && (
-          <div className="mt-2 text-[11px] font-mono text-slate-400 bg-slate-900/60 p-2 rounded border border-slate-800">
-            <div>CRS: <span className="text-slate-200">{currentCase.crs || currentCase.analysis_crs || 'EPSG:32644'}</span></div>
+          <div className="mt-2 text-[11px] font-mono text-slate-400 bg-slate-900/60 p-2.5 rounded border border-slate-800 space-y-1">
+            {currentCase.location && (
+              <div className="text-cyan-300 font-semibold truncate" title={currentCase.location}>
+                {currentCase.location}
+              </div>
+            )}
+            <div>CRS: <span className="text-slate-200">{currentCase.crs || currentCase.analysis_crs || 'EPSG:32622'}</span></div>
             <div>Center: <span className="text-slate-200">{Array.isArray(currentCase.center) ? currentCase.center.slice(0, 2).map((n: number) => n.toFixed(3)).join(', ') : 'N/A'}</span></div>
-            <div className="text-emerald-400 mt-1">● Verified Real NASA OPERA Assets</div>
+            <div className="text-emerald-400 mt-1 flex items-center gap-1">
+              <span>●</span> <span>Verified NASA OPERA / Sentinel-1</span>
+            </div>
           </div>
         )}
       </div>

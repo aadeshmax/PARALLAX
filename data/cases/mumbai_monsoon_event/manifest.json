@@ -1,7 +1,9 @@
 {
   "schema_version": "2.0.0",
   "case_id": "mumbai_monsoon_event",
+  "title": "Mumbai Monsoon Flood & Mangroves (July 2023)",
   "event_name": "Mumbai Monsoon Flood & Mangroves (July 2023)",
+  "location": "Mithi River & Thane Creek, Mumbai, India (UTM 43N)",
   "aoi_bbox": [
     72.860559,
     19.079528,
