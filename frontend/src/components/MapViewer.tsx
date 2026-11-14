@@ -37,11 +37,17 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       zoomControl: false,
     });
 
-    // Dark Matter CartoDB Basemap
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
-      maxZoom: 19,
-      subdomains: 'abcd',
+    // ESRI Dark Gray Canvas Basemap (Free, no API key watermark)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap contributors',
+      maxZoom: 16,
+    }).addTo(map);
+
+    // Cartographic place names, cities, and boundaries overlay
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '',
+      maxZoom: 16,
+      opacity: 0.85
     }).addTo(map);
 
     L.control.zoom({ position: 'topright' }).addTo(map);

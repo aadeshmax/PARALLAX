@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from "react";
-import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { CaseManifest, RegionProperties } from "./types";
+
+type MapLibreMap = maplibregl.Map;
 
 interface MapViewerProps {
   manifest: CaseManifest;
