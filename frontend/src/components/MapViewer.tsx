@@ -80,6 +80,75 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const [radarOpacity, setRadarOpacity] = useState<number>(85);
   const [localSwipe, setLocalSwipe] = useState<number>(sliderPos);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceInfo | null>(null);
+  const [isTourRunning, setIsTourRunning] = useState<boolean>(false);
+  const tourTimeoutsRef = useRef<number[]>([]);
+
+  // Guided Pitch Tour for hackathon judges
+  const startGuidedTour = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    setIsTourRunning(true);
+    tourTimeoutsRef.current.forEach(id => clearTimeout(id));
+    tourTimeoutsRef.current = [];
+
+    const { center } = getCaseCenterAndZoom(caseId);
+    const sites = CASE_INSPECTION_SITES[caseId] || [];
+
+    // Step 1: Broad Overview
+    map.flyTo({ center: center, zoom: 11.2, pitch: 35, bearing: -10, speed: 0.8, essential: true });
+
+    // Step 2: Site 1 (Canopy Inundation Gap) at 4.5s
+    const t1 = window.setTimeout(() => {
+      if (sites[0]) {
+        map.flyTo({ center: sites[0].coords, zoom: 13.8, pitch: 58, bearing: 25, speed: 0.9, essential: true });
+        setSelectedEvidence({
+          className: sites[0].name,
+          classId: 2,
+          areaHa: 4.8,
+          detectionMechanism: sites[0].desc,
+          crossProductContext: sites[0].tag,
+          evidenceTier: 'High Double-Bounce Anomaly',
+          scientificLabel: 'Hidden Water Gap under Canopy'
+        });
+      }
+    }, 4500);
+
+    // Step 3: Site 2 (River Floodplain Channel) at 11s
+    const t2 = window.setTimeout(() => {
+      if (sites[1]) {
+        map.flyTo({ center: sites[1].coords, zoom: 13.5, pitch: 50, bearing: -35, speed: 0.9, essential: true });
+        setSelectedEvidence({
+          className: sites[1].name,
+          classId: 1,
+          areaHa: 25.2,
+          detectionMechanism: sites[1].desc,
+          crossProductContext: sites[1].tag,
+          evidenceTier: 'Specular Radar Darkening Agreement',
+          scientificLabel: 'OPERA DSWx Verified Open Water'
+        });
+      }
+    }, 11000);
+
+    // Step 4: Return to Global 3D Orbit at 18s
+    const t3 = window.setTimeout(() => {
+      map.flyTo({ center: center, zoom: 12, pitch: 52, bearing: -15, speed: 0.8, essential: true });
+      setIsTourRunning(false);
+    }, 18000);
+
+    tourTimeoutsRef.current.push(t1, t2, t3);
+  };
+
+  const stopGuidedTour = () => {
+    tourTimeoutsRef.current.forEach(id => clearTimeout(id));
+    tourTimeoutsRef.current = [];
+    setIsTourRunning(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      tourTimeoutsRef.current.forEach(id => clearTimeout(id));
+    };
+  }, []);
 
   // Sync external slider
   useEffect(() => {
@@ -871,6 +940,19 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         >
           <MapPin className="w-3.5 h-3.5 text-emerald-400" />
           <span>Staging Sites</span>
+        </button>
+
+        {/* 30s Guided Pitch Tour */}
+        <button
+          onClick={isTourRunning ? stopGuidedTour : startGuidedTour}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition ${
+            isTourRunning
+              ? 'bg-rose-500/20 text-rose-300 border-rose-400 animate-pulse'
+              : 'bg-indigo-600/30 text-indigo-300 border-indigo-500/50 hover:bg-indigo-600/50'
+          }`}
+          title="Autonomous camera fly-through highlighting key inundation targets for judges"
+        >
+          <span>{isTourRunning ? '⏹ Stop Pitch Tour' : '🎬 30s Pitch Tour'}</span>
         </button>
 
         {/* Radar Backdrop Opacity Slider (Felt style percentage) */}

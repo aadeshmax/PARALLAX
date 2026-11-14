@@ -1,11 +1,12 @@
 import React from 'react';
 import { EarthdataStatus } from '../types';
-import { Satellite, ShieldCheck, AlertCircle, BookOpen, RefreshCw } from 'lucide-react';
+import { Satellite, ShieldCheck, AlertCircle, BookOpen, RefreshCw, Download } from 'lucide-react';
 
 interface HeaderProps {
   status: EarthdataStatus | null;
   onOpenCitations: () => void;
   onRunAnalysis: () => void;
+  onExportCase?: () => void;
   loading: boolean;
 }
 
@@ -13,6 +14,7 @@ export const Header: React.FC<HeaderProps> = ({
   status,
   onOpenCitations,
   onRunAnalysis,
+  onExportCase,
   loading
 }) => {
   return (
@@ -35,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Connection Status & Actions */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-3">
         {/* Earthdata Status Badge */}
         {status?.authenticated ? (
           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
@@ -56,10 +58,23 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onOpenCitations}
           className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs transition"
+          title="Data Sources, Sensors & Citations"
         >
           <BookOpen className="w-4 h-4 text-cyan-400" />
-          <span>Data Sources & Citations</span>
+          <span>Citations</span>
         </button>
+
+        {/* Export Case Package Button (Section 06 Requirement) */}
+        {onExportCase && (
+          <button
+            onClick={onExportCase}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 text-xs font-mono transition shadow-sm"
+            title="Download full reproducible scientific case package (JSON, GeoJSON, Metadata)"
+          >
+            <Download className="w-4 h-4 text-emerald-400" />
+            <span>Export Case</span>
+          </button>
+        )}
 
         {/* Run Analysis Button */}
         <button
@@ -68,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center space-x-2 px-4 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs shadow-md transition disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>{loading ? 'Processing Radar Rasters...' : 'Execute Dual-Pol Detection'}</span>
+          <span>{loading ? 'Processing...' : 'Execute Dual-Pol Detection'}</span>
         </button>
       </div>
     </header>
