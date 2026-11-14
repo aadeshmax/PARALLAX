@@ -202,6 +202,10 @@ def test_full_real_event_pipeline():
     """Runs complete pipeline on the real flood event case."""
     case_dir = "data/cases/real_event_rio_grande_do_sul"
     pre_sar = os.path.join(case_dir, "OPERA_L2_RTC-S1_T22JBM_20240426T220719Z_VV.tif")
+    if not os.path.exists(pre_sar):
+        from scripts.generate_case import generate_benchmark_case
+        generate_benchmark_case(case_dir)
+
     post_sar = os.path.join(case_dir, "OPERA_L2_RTC-S1_T22JBM_20240508T220719Z_VV.tif")
     pre_vh = os.path.join(case_dir, "OPERA_L2_RTC-S1_T22JBM_20240426T220719Z_VH.tif")
     post_vh = os.path.join(case_dir, "OPERA_L2_RTC-S1_T22JBM_20240508T220719Z_VH.tif")

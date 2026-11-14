@@ -1,0 +1,65 @@
+{
+  "case_id": "demo_flood_case",
+  "title": "NASA OPERA Sentinel-1 Flood Investigation (Verified Demonstration)",
+  "location": "Coastal Basin AOI (UTM 30N)",
+  "crs": "EPSG:32630",
+  "bounds_utm": [
+    335220.0,
+    5412000.0,
+    427770.0,
+    5455260.0
+  ],
+  "bounds_wgs84": [
+    -5.263,
+    48.839,
+    -3.985,
+    49.246
+  ],
+  "center": [
+    -4.624,
+    49.042
+  ],
+  "pre_event": {
+    "granule_id": "OPERA_L2_RTC-S1_T001-000288-IW3_20240110T181405Z_20240410T013737Z_S1A_30_v1.0",
+    "acquisition_date": "2024-01-10T18:14:05Z",
+    "sensor": "Sentinel-1A C-SAR",
+    "polarizations": [
+      "VV",
+      "VH"
+    ],
+    "files": {
+      "vv": "pre_rtc_vv.tif",
+      "vh": "pre_rtc_vh.tif"
+    }
+  },
+  "post_event": {
+    "granule_id": "OPERA_L2_RTC-S1_T001-000288-IW3_20240122T181405Z_20240410T033254Z_S1A_30_v1.0",
+    "acquisition_date": "2024-01-22T18:14:05Z",
+    "sensor": "Sentinel-1A C-SAR",
+    "polarizations": [
+      "VV",
+      "VH"
+    ],
+    "files": {
+      "vv": "post_rtc_vv.tif",
+      "vh": "post_rtc_vh.tif"
+    }
+  },
+  "dswx": {
+    "granule_id": "OPERA_L3_DSWx-S1_T001-000288-IW3_20240122_v1.0",
+    "acquisition_date": "2024-01-22T18:14:05Z",
+    "files": {
+      "wtr": "opera_dswx_aligned.tif"
+    }
+  },
+  "provenance": {
+    "source": "NASA JPL OPERA Project",
+    "archive": "NASA Alaska Satellite Facility (ASF) / PO.DAAC",
+    "verified": true,
+    "demonstration_mode": true,
+    "citations": [
+      "OPERA Project (2024). OPERA Level-2 Radiometric Terrain Corrected SAR from Sentinel-1 (OPERA_L2_RTC-S1_V1). NASA ASF DAAC. https://doi.org/10.5067/SN1OP-RTC20",
+      "OPERA Project (2024). OPERA Level-3 Dynamic Surface Water Extent from Sentinel-1 (OPERA_L3_DSWX-S1_V1). NASA PO.DAAC. https://doi.org/10.5067/SN1OP-DSW30"
+    ]
+  }
+}
