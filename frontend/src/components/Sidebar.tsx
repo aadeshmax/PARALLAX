@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const currentCase = cases.find(c => c.case_id === selectedCaseId) || cases[0];
 
   return (
-    <aside className="w-84 border-r border-radar-border bg-radar-card flex flex-col h-[calc(100vh-4rem)] overflow-y-auto p-4 space-y-5 text-sm shrink-0">
+    <aside className="w-[340px] min-w-[340px] max-w-[340px] border-r border-radar-border bg-radar-card flex flex-col h-[calc(100vh-4rem)] overflow-y-auto p-4 space-y-5 text-sm shrink-0">
       
       {/* 1. Region of Interest Selector */}
       <div>

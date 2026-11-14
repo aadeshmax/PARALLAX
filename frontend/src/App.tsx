@@ -114,7 +114,7 @@ export const App: React.FC = () => {
         />
 
         {/* Central Map Viewer */}
-        <main className="flex-1 relative h-full min-h-[500px]">
+        <main className="flex-1 relative h-full min-w-0 overflow-hidden">
           <MapViewer
             metrics={metrics}
             geojsonData={geojsonData}

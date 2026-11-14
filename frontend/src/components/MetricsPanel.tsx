@@ -9,7 +9,7 @@ interface MetricsPanelProps {
 export const MetricsPanel: React.FC<MetricsPanelProps> = ({ metrics }) => {
   if (!metrics) {
     return (
-      <div className="w-80 border-l border-radar-border bg-radar-card p-4 flex flex-col justify-center items-center text-slate-500 font-mono text-xs">
+      <div className="w-[380px] min-w-[380px] max-w-[380px] border-l border-radar-border bg-radar-card p-4 flex flex-col justify-center items-center text-slate-500 font-mono text-xs shrink-0">
         <Activity className="w-8 h-8 animate-spin mb-2 text-cyan-500/40" />
         <span>Awaiting radar raster ingestion...</span>
       </div>
@@ -28,7 +28,7 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = ({ metrics }) => {
   } = metrics;
 
   return (
-    <div className="w-88 border-l border-radar-border bg-radar-card flex flex-col h-[calc(100vh-4rem)] overflow-y-auto p-4 space-y-4 text-xs font-mono shrink-0">
+    <div className="w-[380px] min-w-[380px] max-w-[380px] border-l border-radar-border bg-radar-card flex flex-col h-[calc(100vh-4rem)] overflow-y-auto p-4 space-y-4 text-xs font-mono shrink-0">
       
       {/* Title */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-2">
