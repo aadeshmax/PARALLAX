@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-11-14T19:18:30Z",
+  "branch": "test/backend-integration",
+  "commit": "7c9208d",
+  "environment": {
+    "python": "3.13.2",
+    "os": "Windows",
+    "framework": "FastAPI 0.128.0",
+    "database": "SQLite 3 (SQLAlchemy 2.0.52)",
+    "geospatial": {
+      "rasterio": "1.5.2",
+      "scipy": "1.18.1",
+      "numpy": "2.5.3",
+      "pyproj": "3.8.0",
+      "shapely": "2.2.0"
+    }
+  },
+  "summary": {
+    "total_tests": 26,
+    "passed": 26,
+    "failed": 0,
+    "blocked": 1,
+    "skipped": 0,
+    "execution_time_seconds": 12.02,
+    "readiness_classification": "DEMO READY"
+  },
+  "performance_benchmarks_ms": {
+    "health_mean": 2.43,
+    "readiness_mean": 2.27,
+    "datasets_mean": 7.27,
+    "analysis_compare_mean": 781.37,
+    "concurrency_10_reqs_mean": 12.03
+  },
+  "auth_status": {
+    "authenticated": false,
+    "status": "credentials_failed",
+    "note": "NASA URS returned invalid_credentials for user ta***r. Live CMR search is active; live download gated on credential activation."
+  }
+}
