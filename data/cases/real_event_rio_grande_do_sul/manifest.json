@@ -120,15 +120,15 @@
   "regions_url": "regions.geojson",
   "statistics": {
     "total_valid_area_sqkm": 78.8544,
-    "baseline_water_area_sqkm": 20.6622,
-    "candidate_inundation_area_sqkm": 18.5094,
-    "specular_candidate_area_sqkm": 14.9625,
-    "double_bounce_candidate_area_sqkm": 3.5469,
-    "overlap_area_sqkm": 13.671,
-    "additional_candidate_area_sqkm": 4.8384,
-    "baseline_only_area_sqkm": 6.9912,
-    "iou_agreement": 0.5361,
-    "additional_candidate_ratio": 0.2614,
+    "baseline_water_area_sqkm": 30.2337,
+    "candidate_inundation_area_sqkm": 35.7093,
+    "specular_candidate_area_sqkm": 25.5186,
+    "double_bounce_candidate_area_sqkm": 10.1907,
+    "overlap_area_sqkm": 24.2226,
+    "additional_candidate_area_sqkm": 11.4867,
+    "baseline_only_area_sqkm": 6.0111,
+    "iou_agreement": 0.5806,
+    "additional_candidate_ratio": 0.3217,
     "metrics_notes": "IoU is reported strictly as cross-sensor agreement between SAR candidate inundation and OPERA DSWx baseline, NOT detection accuracy or ground truth. Independent in-situ validation labels are required for precision/recall/F1 metrics."
   },
   "limitations": [
@@ -136,6 +136,6 @@
     "Double-bounce scattering can be influenced by soil moisture changes or agricultural cycles.",
     "NASA OPERA DSWx is a classified surface water product; cross-sensor disagreement denotes observation gap, not defect."
   ],
-  "generated_at": "2026-11-14T13:08:39.115718+00:00",
+  "generated_at": "2026-11-14T13:45:51.028792+00:00",
   "evidence_mode": "cached_verified_case"
 }
