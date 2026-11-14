@@ -76,9 +76,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const [is3D, setIs3D] = useState<boolean>(true);
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [showSites, setShowSites] = useState<boolean>(true);
-  const [radarMode, setRadarMode] = useState<'post' | 'pre' | 'compare'>('post');
+  const [radarMode, setRadarMode] = useState<'post' | 'pre' | 'compare'>('compare');
   const [radarOpacity, setRadarOpacity] = useState<number>(85);
   const [localSwipe, setLocalSwipe] = useState<number>(sliderPos);
+
+  // Sync with sidebar layer toggle
+  useEffect(() => {
+    if (layers.showCompareSlider) {
+      setRadarMode('compare');
+    }
+  }, [layers.showCompareSlider]);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceInfo | null>(null);
   const [isTourRunning, setIsTourRunning] = useState<boolean>(false);
   const tourTimeoutsRef = useRef<number[]>([]);
@@ -971,10 +978,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
       </div>
 
-      {/* Floating Radar Swipe Slider (Only in compare mode) */}
-      {radarMode === 'compare' && (
-        <div className="absolute top-16 left-4 z-20 flex items-center gap-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-purple-500/80 shadow-2xl font-mono text-xs animate-fade-in">
-          <span className="text-cyan-400 text-[11px] font-semibold">Pre-Event Baseline</span>
+      {/* Floating Radar Swipe Slider (Always visible in Compare Mode) */}
+      {(radarMode === 'compare' || layers.showCompareSlider) && (
+        <div className="absolute top-16 left-4 z-20 flex items-center gap-3 bg-slate-900/95 backdrop-blur-md px-4 py-2.5 rounded-xl border-2 border-purple-500 shadow-2xl font-mono text-xs animate-fade-in">
+          <div className="flex items-center gap-1 text-cyan-300 font-bold text-[11px] shrink-0">
+            <span>⏮️ Baseline</span>
+            <span className="text-[10px] text-slate-400">({100 - localSwipe}%)</span>
+          </div>
           <input
             type="range"
             min="0"
@@ -985,9 +995,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
               setLocalSwipe(val);
               if (onSliderChange) onSliderChange(val);
             }}
-            className="w-44 accent-purple-400 cursor-ew-resize"
+            className="w-48 h-2 accent-purple-400 bg-slate-800 rounded-lg cursor-ew-resize"
+            title={`Swipe Position: ${localSwipe}% Peak Flood`}
           />
-          <span className="text-amber-400 text-[11px] font-semibold">Peak Flood Event</span>
+          <div className="flex items-center gap-1 text-amber-300 font-bold text-[11px] shrink-0">
+            <span>Peak Flood 🌊</span>
+            <span className="text-[10px] text-slate-400">({localSwipe}%)</span>
+          </div>
         </div>
       )}
 
