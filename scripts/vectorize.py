@@ -84,6 +84,16 @@ def vectorize_candidates(
         if area_km2 < min_area_km2:
             continue
 
+        # Sub-pixel topological contour smoothing (eliminates 30m grid stair-stepping)
+        try:
+            poly_smoothed = poly_shapely.buffer(8.0, resolution=4).buffer(-8.0, resolution=4).simplify(6.0, preserve_topology=True)
+            if poly_smoothed.is_empty or not poly_smoothed.is_valid:
+                poly_smoothed = poly_shapely.simplify(10.0, preserve_topology=True)
+            if poly_smoothed.is_empty or not poly_smoothed.is_valid:
+                poly_smoothed = poly_shapely
+        except Exception:
+            poly_smoothed = poly_shapely
+
         poly_mask = rasterio.features.geometry_mask(
             [geom],
             out_shape=cand_mask.shape,
@@ -117,7 +127,7 @@ def vectorize_candidates(
             interpretation = "Candidate urban open-water inundation via specular backscatter darkening." if is_mumbai else "Candidate open-water inundation via specular backscatter darkening."
 
         opera_status = "additional_candidate" if is_gap else "agreement"
-        geom_wgs84 = transform_geom(src_crs, "EPSG:4326", geom)
+        geom_wgs84 = transform_geom(src_crs, "EPSG:4326", mapping(poly_smoothed))
         region_id = f"reg-{reg_counter:03d}"
         reg_counter += 1
 
@@ -127,10 +137,17 @@ def vectorize_candidates(
             "geometry": geom_wgs84,
             "properties": {
                 "region_id": region_id,
+                "class_id": 2 if candidate_type == "double_bounce" else 1,
+                "class_name": "Inundated Veg (Double-Bounce)" if candidate_type == "double_bounce" else "Confirmed Open Water",
                 "area_km2": area_km2,
+                "area_ha": round(area_km2 * 100, 2),
                 "candidate_type": candidate_type,
                 "opera_status": opera_status,
                 "vegetation_class": vegetation_class,
+                "detection_mechanism": "L-band radar dihedral trunk-water reflection under canopy" if candidate_type == "double_bounce" else "Specular radar surface attenuation",
+                "cross_product_context": "Disagrees with standard OPERA surface water (canopy obscured)" if is_gap else "Agrees with NASA OPERA DSWx extent",
+                "evidence_tier": "High Confidence Inundation Candidate" if mean_conf > 0.8 else "Moderate Confidence Candidate",
+                "scientific_label": "Canopy Inundation Candidate (Dual-Pol L-band)" if candidate_type == "double_bounce" else "Surface Water Inundation",
                 "before_scene_ids": [os.path.basename(pre_sar_path).replace(".tif", "")] if pre_sar_path else [],
                 "after_scene_id": os.path.basename(post_sar_path).replace(".tif", "") if post_sar_path else "",
                 "vv_baseline_db": round(median_pre_db, 2),
@@ -173,7 +190,23 @@ def vectorize_candidates(
 
 
 if __name__ == "__main__":
-    # Can run with command line args or default
-    case_dir = sys.argv[1] if len(sys.argv) > 1 else "data/cases/real_event_rio_grande_do_sul"
-    proc_dir = sys.argv[2] if len(sys.argv) > 2 else "data/processed/rio_grande_do_sul_event"
-    vectorize_candidates(processed_dir=proc_dir, case_dir=case_dir)
+    if len(sys.argv) > 1:
+        case_dir = sys.argv[1]
+        proc_dir = sys.argv[2] if len(sys.argv) > 2 else f"data/processed/{os.path.basename(case_dir)}"
+        vectorize_candidates(processed_dir=proc_dir, case_dir=case_dir)
+    else:
+        cases_map = [
+            ("data/cases/real_event_rio_grande_do_sul", "data/processed/real_event_rio_grande_do_sul"),
+            ("data/cases/mumbai_monsoon_event", "data/processed/mumbai_monsoon_event"),
+            ("data/cases/chennai_live_case", "data/processed/chennai_live_case"),
+            ("data/cases/demo_flood_case", "data/processed/demo_flood_case"),
+        ]
+        for c_dir, p_dir in cases_map:
+            if not os.path.exists(p_dir):
+                alt_p = "data/processed/rio_grande_do_sul_event" if "rio_grande" in c_dir else p_dir
+                p_dir = alt_p
+            if os.path.exists(p_dir) and os.path.exists(c_dir):
+                try:
+                    vectorize_candidates(processed_dir=p_dir, case_dir=c_dir)
+                except Exception as e:
+                    print(f"Skipping {c_dir}: {e}")

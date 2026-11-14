@@ -55,25 +55,25 @@ def colormap_sar_db(arr: np.ndarray, vmin: float = -25.0, vmax: float = 0.0) -> 
 
 def colormap_diff_db(arr: np.ndarray) -> Image.Image:
     """
-    Renders signed change in dB:
-    - Specular drop (<= -3 dB): Luminous Cyan/Blue
-    - Neutral (-3 to +2.5 dB): Transparent
-    - Double bounce (>= +2.5 dB): Vibrant Amber/Gold
+    Renders signed change in dB with smooth anti-aliased transitions:
+    - Specular drop (<= -2.6 dB): Luminous Cyan/Blue
+    - Neutral: Transparent
+    - Double bounce (>= +2.2 dB): Vibrant Amber/Gold
     """
     rgba = np.zeros((TILE_SIZE, TILE_SIZE, 4), dtype=np.uint8)
     valid = np.isfinite(arr) & (arr > -90.0)
 
-    # Specular darkening
-    specular_mask = valid & (arr <= -3.0)
-    spec_intensity = np.clip((-arr - 3.0) / 10.0, 0.3, 1.0)
+    # Specular darkening with smooth threshold transition
+    specular_mask = valid & (arr <= -2.6)
+    spec_intensity = np.clip((-arr - 2.6) / 8.0, 0.25, 1.0)
     rgba[specular_mask, 0] = (14 * spec_intensity[specular_mask]).astype(np.uint8)
     rgba[specular_mask, 1] = (165 * spec_intensity[specular_mask]).astype(np.uint8)
     rgba[specular_mask, 2] = (233 * spec_intensity[specular_mask]).astype(np.uint8)
     rgba[specular_mask, 3] = (210 * spec_intensity[specular_mask]).astype(np.uint8)
 
-    # Double bounce enhancement
-    db_mask = valid & (arr >= 2.5)
-    db_intensity = np.clip((arr - 2.5) / 5.5, 0.4, 1.0)
+    # Double bounce enhancement with smooth threshold transition
+    db_mask = valid & (arr >= 2.2)
+    db_intensity = np.clip((arr - 2.2) / 5.0, 0.25, 1.0)
     rgba[db_mask, 0] = 245
     rgba[db_mask, 1] = 158
     rgba[db_mask, 2] = 11
@@ -83,13 +83,15 @@ def colormap_diff_db(arr: np.ndarray) -> Image.Image:
 
 
 def colormap_mask(arr: np.ndarray, color_rgb: Tuple[int, int, int], alpha: int = 180) -> Image.Image:
-    """Renders a categorical binary mask with given color and alpha."""
+    """Renders a smooth, anti-aliased categorical mask with given color and alpha falloff."""
     rgba = np.zeros((TILE_SIZE, TILE_SIZE, 4), dtype=np.uint8)
-    mask = np.isfinite(arr) & (arr > 0)
-    rgba[mask, 0] = color_rgb[0]
-    rgba[mask, 1] = color_rgb[1]
-    rgba[mask, 2] = color_rgb[2]
-    rgba[mask, 3] = alpha
+    valid = np.isfinite(arr) & (arr > 0.08)
+    intensity = np.nan_to_num(np.clip(arr, 0.0, 1.0), nan=0.0)
+    alpha_arr = (intensity * alpha).astype(np.uint8)
+    rgba[valid, 0] = color_rgb[0]
+    rgba[valid, 1] = color_rgb[1]
+    rgba[valid, 2] = color_rgb[2]
+    rgba[valid, 3] = alpha_arr[valid]
     return Image.fromarray(rgba, "RGBA")
 
 
@@ -146,7 +148,7 @@ def generate_tiles_for_layer(
                         dst_crs="EPSG:3857",
                         src_nodata=src_nodata,
                         dst_nodata=np.nan,
-                        resampling=Resampling.bilinear if colormap_type != "mask" else Resampling.nearest
+                        resampling=Resampling.bilinear
                     )
 
                     if np.all(np.isnan(dest_tile)):
@@ -200,9 +202,36 @@ def generate_all_case_tiles(
         tiles_base_dir = os.path.join(case_dir, "tiles")
     os.makedirs(tiles_base_dir, exist_ok=True)
 
-    vv_files = sorted(glob.glob(os.path.join(case_dir, "*_VV.tif")))
-    pre_vv_path = vv_files[0] if len(vv_files) > 0 else None
-    post_vv_path = vv_files[-1] if len(vv_files) > 1 else pre_vv_path
+    vv_files = sorted(
+        glob.glob(os.path.join(case_dir, "*_VV.tif")) +
+        glob.glob(os.path.join(case_dir, "*_vv.tif")) +
+        glob.glob(os.path.join(case_dir, "*VV*.tif"))
+    )
+    pre_vv_path = None
+    post_vv_path = None
+    if os.path.exists(os.path.join(case_dir, "pre_rtc_vv.tif")):
+        pre_vv_path = os.path.join(case_dir, "pre_rtc_vv.tif")
+        post_vv_path = os.path.join(case_dir, "post_rtc_vv.tif")
+    elif len(vv_files) >= 2:
+        pre_vv_path = vv_files[0]
+        post_vv_path = vv_files[1]
+    elif len(vv_files) == 1:
+        pre_vv_path = vv_files[0]
+        post_vv_path = vv_files[0]
+
+    dswx_files = sorted(
+        glob.glob(os.path.join(case_dir, "*_WTR.tif")) +
+        glob.glob(os.path.join(case_dir, "*aligned.tif")) +
+        glob.glob(os.path.join(case_dir, "*dswx*.tif"))
+    )
+    dswx_path = dswx_files[0] if len(dswx_files) > 0 else None
+
+    diff_db_path = os.path.join(processed_dir, "backscatter_diff_db.tif")
+    opera_water_path = os.path.join(processed_dir, "baseline_water.tif")
+    gap_path = os.path.join(processed_dir, "additional_candidate.tif")
+
+    if not os.path.exists(opera_water_path) and dswx_path:
+        opera_water_path = dswx_path
 
     layers = [
         {
@@ -217,17 +246,17 @@ def generate_all_case_tiles(
         },
         {
             "name": "diff_db",
-            "path": os.path.join(processed_dir, "backscatter_diff_db.tif"),
+            "path": diff_db_path if os.path.exists(diff_db_path) else None,
             "colormap": "diff_db"
         },
         {
             "name": "opera_water",
-            "path": os.path.join(processed_dir, "baseline_water.tif"),
+            "path": opera_water_path if os.path.exists(opera_water_path) else None,
             "colormap": "opera_water"
         },
         {
             "name": "gap_overlay",
-            "path": os.path.join(processed_dir, "additional_candidate.tif"),
+            "path": gap_path if os.path.exists(gap_path) else None,
             "colormap": "gap_overlay"
         }
     ]
@@ -246,6 +275,21 @@ def generate_all_case_tiles(
 
 
 if __name__ == "__main__":
-    case_dir = sys.argv[1] if len(sys.argv) > 1 else "data/cases/real_event_rio_grande_do_sul"
-    proc_dir = sys.argv[2] if len(sys.argv) > 2 else "data/processed/rio_grande_do_sul_event"
-    generate_all_case_tiles(case_dir=case_dir, processed_dir=proc_dir)
+    if len(sys.argv) > 1:
+        case_dir = sys.argv[1]
+        proc_dir = sys.argv[2] if len(sys.argv) > 2 else f"data/processed/{os.path.basename(case_dir)}"
+        generate_all_case_tiles(case_dir=case_dir, processed_dir=proc_dir)
+    else:
+        cases_map = [
+            ("data/cases/real_event_rio_grande_do_sul", "data/processed/rio_grande_do_sul_event"),
+            ("data/cases/mumbai_monsoon_event", "data/processed/mumbai_monsoon_event"),
+            ("data/cases/chennai_live_case", "data/processed/chennai_live_case"),
+            ("data/cases/demo_flood_case", "data/processed/demo_flood_case"),
+        ]
+        for c_dir, p_dir in cases_map:
+            if os.path.exists(c_dir):
+                print(f"=== Generating smooth raster tiles for {os.path.basename(c_dir)} ===")
+                try:
+                    generate_all_case_tiles(case_dir=c_dir, processed_dir=p_dir)
+                except Exception as e:
+                    print(f"Error on {c_dir}: {e}")

@@ -384,16 +384,26 @@ class DetectionEngine:
         for geom_dict, val in shapes(class_arr.astype(np.int32), mask=candidate_mask, transform=profile["transform"]):
             poly = shape(geom_dict)
             area_m2 = poly.area
-            if area_m2 < (pixel_area_km2 * 1e6 * 3): # Skip tiny speckles
+            if area_m2 < (pixel_area_km2 * 1e6 * 4): # Filter isolated 1-2 pixel speckle noise
                 continue
+
+            # Sub-pixel topological contour smoothing (eliminates 30m grid stair-stepping)
+            try:
+                poly_smoothed = poly.buffer(8.0, resolution=4).buffer(-8.0, resolution=4).simplify(6.0, preserve_topology=True)
+                if poly_smoothed.is_empty or not poly_smoothed.is_valid:
+                    poly_smoothed = poly.simplify(10.0, preserve_topology=True)
+                if poly_smoothed.is_empty or not poly_smoothed.is_valid:
+                    poly_smoothed = poly
+            except Exception:
+                poly_smoothed = poly
 
             if transformer:
                 try:
-                    poly_wgs84 = shapely_transform(transformer.transform, poly)
+                    poly_wgs84 = shapely_transform(transformer.transform, poly_smoothed)
                 except Exception:
-                    poly_wgs84 = poly
+                    poly_wgs84 = poly_smoothed
             else:
-                poly_wgs84 = poly
+                poly_wgs84 = poly_smoothed
 
             if val == 1:
                 cls_name = "Confirmed Open Water (Cross-Product Agreement)"

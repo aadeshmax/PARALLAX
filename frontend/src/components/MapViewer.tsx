@@ -375,6 +375,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             id: 'candidates-line',
             type: 'line',
             source: 'candidates-geojson',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
             paint: {
               'line-color': [
                 'match',
@@ -383,8 +387,8 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 1, '#67e8f9',
                 '#ffffff'
               ],
-              'line-width': 1.5,
-              'line-opacity': 0.9
+              'line-width': 1.8,
+              'line-opacity': 0.95
             }
           });
         }
