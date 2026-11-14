@@ -61,11 +61,17 @@
         <div class="stats-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #1e293b;"><span>Sensor Agreement (IoU)</span><span class="stats-val" style="color: #38bdf8;">58.1%</span></div>
       </div>
 
-      <div class="section-title">Basemap Perspective</div>
+      <div class="section-title">Basemap & Perspective</div>
       <div class="btn-group">
         <button id="btn-sat" class="btn active" onclick="setBasemap('satellite')">Satellite Ortho</button>
         <button id="btn-dark" class="btn" onclick="setBasemap('dark')">Dark Canvas</button>
         <button id="btn-3d" class="btn" onclick="toggle3DPitch()">3D Tilt</button>
+      </div>
+
+      <div class="section-title">Cartographic Labels</div>
+      <div class="layer-item">
+        <span>📍 City, Town & River Labels</span>
+        <input type="checkbox" id="toggle-labels" checked>
       </div>
 
       <div class="section-title">Radar Grayscale Backdrop</div>
@@ -138,6 +144,22 @@
             ],
             tileSize: 256,
             attribution: 'Esri, HERE, Garmin, © OpenStreetMap'
+          },
+          'esri-sat-labels': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri'
+          },
+          'esri-dark-labels': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri'
           }
         },
         layers: [
@@ -284,6 +306,27 @@
         }
       });
 
+      // 7. Place Names & City Labels (Layered on top of satellite imagery and radar)
+      map.addLayer({
+        id: 'sat-labels-layer',
+        type: 'raster',
+        source: 'esri-sat-labels',
+        minzoom: 0,
+        maxzoom: 19,
+        layout: { visibility: 'visible' },
+        paint: { 'raster-opacity': 0.95 }
+      });
+
+      map.addLayer({
+        id: 'dark-labels-layer',
+        type: 'raster',
+        source: 'esri-dark-labels',
+        minzoom: 0,
+        maxzoom: 19,
+        layout: { visibility: 'none' },
+        paint: { 'raster-opacity': 0.95 }
+      });
+
       // Interactivity
       map.on('mouseenter', 'regions-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'regions-fill', () => { map.getCanvas().style.cursor = ''; });
@@ -309,6 +352,10 @@
       document.getElementById('btn-dark').classList.toggle('active', type === 'dark');
       map.setLayoutProperty('esri-sat-layer', 'visibility', type === 'satellite' ? 'visible' : 'none');
       map.setLayoutProperty('esri-dark-layer', 'visibility', type === 'dark' ? 'visible' : 'none');
+
+      const showLabels = document.getElementById('toggle-labels').checked;
+      map.setLayoutProperty('sat-labels-layer', 'visibility', (type === 'satellite' && showLabels) ? 'visible' : 'none');
+      map.setLayoutProperty('dark-labels-layer', 'visibility', (type === 'dark' && showLabels) ? 'visible' : 'none');
     }
 
     // 3D Pitch toggle
@@ -343,6 +390,13 @@
         map.setPaintProperty('post-sar-layer', 'raster-opacity', baseRadarOpacity * swipeFraction);
       }
     }
+
+    // Toggle labels
+    document.getElementById('toggle-labels').addEventListener('change', (e) => {
+      const isSat = document.getElementById('btn-sat').classList.contains('active');
+      map.setLayoutProperty('sat-labels-layer', 'visibility', (isSat && e.target.checked) ? 'visible' : 'none');
+      map.setLayoutProperty('dark-labels-layer', 'visibility', (!isSat && e.target.checked) ? 'visible' : 'none');
+    });
 
     // Toggles
     document.getElementById('toggle-opera').addEventListener('change', (e) => {
