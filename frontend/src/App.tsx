@@ -49,7 +49,8 @@ export const App: React.FC = () => {
         if (ds) setDatasets(ds);
         if (cs && cs.length > 0) {
           setCases(cs);
-          setSelectedCaseId(cs[0].case_id);
+          const initial = cs.find(c => c.case_id === 'real_event_rio_grande_do_sul') || cs[0];
+          setSelectedCaseId(initial.case_id);
         }
       } catch (err) {
         console.error("Initialization error:", err);
@@ -113,29 +114,16 @@ export const App: React.FC = () => {
         />
 
         {/* Central Map Viewer */}
-        <main className="flex-1 relative h-full">
+        <main className="flex-1 relative h-full min-h-[500px]">
           <MapViewer
             metrics={metrics}
             geojsonData={geojsonData}
+            caseId={selectedCaseId}
+            currentCase={cases.find(c => c.case_id === selectedCaseId)}
             layers={layers}
             sliderPos={sliderPos}
+            onSliderChange={(val) => setSliderPos(val)}
           />
-
-          {/* Floating Slider Control when Compare Mode is enabled */}
-          {layers.showCompareSlider && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-lg border border-slate-700 shadow-xl flex items-center space-x-3 text-xs font-mono">
-              <span className="text-cyan-400">Pre-Flood SAR</span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={sliderPos}
-                onChange={(e) => setSliderPos(Number(e.target.value))}
-                className="w-48 accent-amber-400 cursor-ew-resize"
-              />
-              <span className="text-emerald-400">Post-Flood SAR</span>
-            </div>
-          )}
         </main>
 
         {/* Right Scientific Metrics Panel */}

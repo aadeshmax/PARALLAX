@@ -49,14 +49,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           {cases.map((c) => (
             <option key={c.case_id} value={c.case_id}>
-              {c.title}
+              {c.title || c.event_name || c.case_id}
             </option>
           ))}
         </select>
         {currentCase && (
           <div className="mt-2 text-[11px] font-mono text-slate-400 bg-slate-900/60 p-2 rounded border border-slate-800">
-            <div>CRS: <span className="text-slate-200">{currentCase.crs}</span></div>
-            <div>Center: <span className="text-slate-200">{currentCase.center.join(', ')}</span></div>
+            <div>CRS: <span className="text-slate-200">{currentCase.crs || currentCase.analysis_crs || 'EPSG:32644'}</span></div>
+            <div>Center: <span className="text-slate-200">{Array.isArray(currentCase.center) ? currentCase.center.slice(0, 2).map((n: number) => n.toFixed(3)).join(', ') : 'N/A'}</span></div>
             <div className="text-emerald-400 mt-1">● Verified Real NASA OPERA Assets</div>
           </div>
         )}
@@ -71,18 +71,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="space-y-2 text-xs font-mono">
           <div className="p-2.5 rounded bg-slate-900/80 border border-slate-800">
             <div className="text-slate-400 text-[10px] uppercase">Pre-Event Baseline SAR</div>
-            <div className="text-cyan-300 font-semibold mt-0.5">2024-01-10 18:14 UTC</div>
-            <div className="text-[10px] text-slate-400 mt-1 truncate" title={currentCase?.pre_event.granule_id}>
-              {currentCase?.pre_event.granule_id}
+            <div className="text-cyan-300 font-semibold mt-0.5">
+              {currentCase?.pre_event?.acquisition_date || currentCase?.scenes?.[0]?.acquisition_timestamp || '2024-01-10 18:14 UTC'}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-1 truncate" title={currentCase?.pre_event?.granule_id || currentCase?.scenes?.[0]?.scene_id}>
+              {currentCase?.pre_event?.granule_id || currentCase?.scenes?.[0]?.scene_id || 'OPERA_L2_RTC-S1_PRE'}
             </div>
             <div className="text-[10px] text-emerald-400 mt-0.5">Polarization: VV + VH</div>
           </div>
 
           <div className="p-2.5 rounded bg-slate-900/80 border border-slate-800">
             <div className="text-slate-400 text-[10px] uppercase">Post-Event Investigation SAR</div>
-            <div className="text-cyan-300 font-semibold mt-0.5">2024-01-22 18:14 UTC</div>
-            <div className="text-[10px] text-slate-400 mt-1 truncate" title={currentCase?.post_event.granule_id}>
-              {currentCase?.post_event.granule_id}
+            <div className="text-cyan-300 font-semibold mt-0.5">
+              {currentCase?.post_event?.acquisition_date || currentCase?.scenes?.[1]?.acquisition_timestamp || '2024-01-22 18:14 UTC'}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-1 truncate" title={currentCase?.post_event?.granule_id || currentCase?.scenes?.[1]?.scene_id}>
+              {currentCase?.post_event?.granule_id || currentCase?.scenes?.[1]?.scene_id || 'OPERA_L2_RTC-S1_POST'}
             </div>
             <div className="text-[10px] text-emerald-400 mt-0.5">Polarization: VV + VH</div>
           </div>
