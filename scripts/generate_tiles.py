@@ -1,0 +1,219 @@
+"""
+XYZ Raster Tile Generator for TERRA//PULSE.
+Converts analytical GeoTIFFs into Web Mercator XYZ tiles ({z}/{x}/{y}.png)
+with identical radiometric stretches and alpha transparency for NoData.
+"""
+import math
+import os
+import sys
+from typing import Tuple, List, Dict
+import numpy as np
+from PIL import Image
+import rasterio
+from rasterio.transform import from_bounds
+from rasterio.warp import reproject, Resampling, transform_bounds
+
+EARTH_CIRCUMFERENCE = 40075016.68557849
+ORIGIN_SHIFT = 20037508.342789244
+TILE_SIZE = 256
+
+
+def mercator_bounds_for_tile(z: int, x: int, y: int) -> Tuple[float, float, float, float]:
+    """Returns (minx, miny, maxx, maxy) in EPSG:3857 for tile (z, x, y)."""
+    num_tiles = 1 << z
+    tile_size_merc = (2.0 * ORIGIN_SHIFT) / num_tiles
+    minx = -ORIGIN_SHIFT + x * tile_size_merc
+    maxx = minx + tile_size_merc
+    maxy = ORIGIN_SHIFT - y * tile_size_merc
+    miny = maxy - tile_size_merc
+    return (minx, miny, maxx, maxy)
+
+
+def tile_xy_for_lonlat(lon: float, lat: float, z: int) -> Tuple[int, int]:
+    """Returns tile (x, y) for (lon, lat) at zoom z."""
+    lat_rad = math.radians(lat)
+    n = 1 << z
+    x = int((lon + 180.0) / 360.0 * n)
+    y = int((1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n)
+    return (x, y)
+
+
+def colormap_sar_db(arr: np.ndarray, vmin: float = -25.0, vmax: float = 0.0) -> Image.Image:
+    """Renders grayscale SAR backscatter with alpha for nodata."""
+    rgba = np.zeros((TILE_SIZE, TILE_SIZE, 4), dtype=np.uint8)
+    valid = np.isfinite(arr) & (arr > -90.0)
+
+    # Normalize between vmin and vmax
+    clipped = np.clip(arr, vmin, vmax)
+    clean = np.nan_to_num(clipped, nan=vmin)
+    norm = ((clean - vmin) / (vmax - vmin) * 255.0).astype(np.uint8)
+
+    rgba[..., 0] = norm
+    rgba[..., 1] = norm
+    rgba[..., 2] = norm
+    rgba[..., 3] = np.where(valid, 255, 0).astype(np.uint8)
+    return Image.fromarray(rgba, "RGBA")
+
+
+def colormap_diff_db(arr: np.ndarray) -> Image.Image:
+    """
+    Renders signed change in dB:
+    - Specular drop (<= -3 dB): Blue
+    - Neutral (-3 to +2.5 dB): Dark transparent
+    - Double bounce (>= +2.5 dB): Amber / Red
+    """
+    rgba = np.zeros((TILE_SIZE, TILE_SIZE, 4), dtype=np.uint8)
+    valid = np.isfinite(arr) & (arr > -90.0)
+
+    # Blue for specular darkening
+    specular_mask = valid & (arr <= -3.0)
+    spec_intensity = np.clip((-arr - 3.0) / 10.0, 0.2, 1.0)
+    rgba[specular_mask, 0] = (20 * spec_intensity[specular_mask]).astype(np.uint8)
+    rgba[specular_mask, 1] = (140 * spec_intensity[specular_mask]).astype(np.uint8)
+    rgba[specular_mask, 2] = (255 * spec_intensity[specular_mask]).astype(np.uint8)
+    rgba[specular_mask, 3] = (220 * spec_intensity[specular_mask]).astype(np.uint8)
+
+    # Amber / Orange for double bounce enhancement
+    db_mask = valid & (arr >= 2.5)
+    db_intensity = np.clip((arr - 2.5) / 6.0, 0.3, 1.0)
+    rgba[db_mask, 0] = 255
+    rgba[db_mask, 1] = (165 * (1.0 - 0.3 * db_intensity[db_mask])).astype(np.uint8)
+    rgba[db_mask, 2] = 0
+    rgba[db_mask, 3] = (230 * db_intensity[db_mask]).astype(np.uint8)
+
+    return Image.fromarray(rgba, "RGBA")
+
+
+def colormap_mask(arr: np.ndarray, color_rgb: Tuple[int, int, int], alpha: int = 190) -> Image.Image:
+    """Renders a categorical binary mask with given color and alpha."""
+    rgba = np.zeros((TILE_SIZE, TILE_SIZE, 4), dtype=np.uint8)
+    mask = np.isfinite(arr) & (arr > 0)
+    rgba[mask, 0] = color_rgb[0]
+    rgba[mask, 1] = color_rgb[1]
+    rgba[mask, 2] = color_rgb[2]
+    rgba[mask, 3] = alpha
+    return Image.fromarray(rgba, "RGBA")
+
+
+def generate_tiles_for_layer(
+    src_geotiff: str,
+    output_dir: str,
+    layer_name: str,
+    colormap_type: str,
+    zooms: List[int] = [11, 12, 13, 14, 15]
+):
+    """Generates XYZ tiles for a single GeoTIFF layer."""
+    with rasterio.open(src_geotiff) as src:
+        src_crs = src.crs
+        src_data = src.read(1).astype(np.float32)
+        src_transform = src.transform
+        src_nodata = src.nodata
+
+        # Convert linear power to dB if SAR
+        if colormap_type in ["sar_db", "diff_db"] and layer_name in ["pre_sar", "post_sar"]:
+            valid_vals = src_data[np.isfinite(src_data)]
+            if len(valid_vals) > 0 and np.nanquantile(valid_vals, 0.95) > 0:
+                src_data = 10.0 * np.log10(np.maximum(src_data, 1e-5))
+
+        wgs_bounds = transform_bounds(src_crs, "EPSG:4326", *src.bounds)
+        merc_bounds = transform_bounds(src_crs, "EPSG:3857", *src.bounds)
+
+        min_lon, min_lat, max_lon, max_lat = wgs_bounds
+
+        total_tiles = 0
+        for z in zooms:
+            # Determine tile range covering bounding box
+            x_min, y_min = tile_xy_for_lonlat(min_lon, max_lat, z)
+            x_max, y_max = tile_xy_for_lonlat(max_lon, min_lat, z)
+
+            for x in range(min(x_min, x_max), max(x_min, x_max) + 1):
+                for y in range(min(y_min, y_max), max(y_min, y_max) + 1):
+                    tile_bounds = mercator_bounds_for_tile(z, x, y)
+                    tile_transform = from_bounds(*tile_bounds, TILE_SIZE, TILE_SIZE)
+
+                    dest_tile = np.full((TILE_SIZE, TILE_SIZE), np.nan, dtype=np.float32)
+
+                    reproject(
+                        source=src_data,
+                        destination=dest_tile,
+                        src_transform=src_transform,
+                        src_crs=src_crs,
+                        dst_transform=tile_transform,
+                        dst_crs="EPSG:3857",
+                        src_nodata=src_nodata,
+                        dst_nodata=np.nan,
+                        resampling=Resampling.bilinear if colormap_type != "mask" else Resampling.nearest
+                    )
+
+                    # Only save tile if it contains valid data
+                    if np.all(np.isnan(dest_tile)):
+                        continue
+
+                    # Apply colormap
+                    if colormap_type == "sar_db":
+                        img = colormap_sar_db(dest_tile, vmin=-25.0, vmax=0.0)
+                    elif colormap_type == "diff_db":
+                        img = colormap_diff_db(dest_tile)
+                    elif colormap_type == "opera_water":
+                        img = colormap_mask(dest_tile, color_rgb=(0, 229, 255), alpha=180)
+                    elif colormap_type == "gap_overlay":
+                        img = colormap_mask(dest_tile, color_rgb=(255, 179, 0), alpha=210)
+                    else:
+                        img = colormap_mask(dest_tile, color_rgb=(200, 200, 200), alpha=150)
+
+                    tile_path = os.path.join(output_dir, str(z), str(x), f"{y}.png")
+                    os.makedirs(os.path.dirname(tile_path), exist_ok=True)
+                    img.save(tile_path, "PNG")
+                    total_tiles += 1
+
+        print(f"Layer [{layer_name}]: Generated {total_tiles} XYZ tiles in {output_dir}")
+
+
+def generate_all_case_tiles(
+    case_dir: str = "data/cases/real_event_rio_grande_do_sul",
+    processed_dir: str = "data/processed/rio_grande_do_sul_event",
+    tiles_base_dir: str = "data/cases/real_event_rio_grande_do_sul/tiles"
+):
+    os.makedirs(tiles_base_dir, exist_ok=True)
+
+    layers = [
+        {
+            "name": "pre_sar",
+            "path": os.path.join(case_dir, "OPERA_L2_RTC-S1_T22JBM_20240426T220719Z_VV.tif"),
+            "colormap": "sar_db"
+        },
+        {
+            "name": "post_sar",
+            "path": os.path.join(case_dir, "OPERA_L2_RTC-S1_T22JBM_20240508T220719Z_VV.tif"),
+            "colormap": "sar_db"
+        },
+        {
+            "name": "diff_db",
+            "path": os.path.join(processed_dir, "backscatter_diff_db.tif"),
+            "colormap": "diff_db"
+        },
+        {
+            "name": "opera_water",
+            "path": os.path.join(processed_dir, "baseline_water.tif"),
+            "colormap": "opera_water"
+        },
+        {
+            "name": "gap_overlay",
+            "path": os.path.join(processed_dir, "additional_candidate.tif"),
+            "colormap": "gap_overlay"
+        }
+    ]
+
+    for layer in layers:
+        out_layer_dir = os.path.join(tiles_base_dir, layer["name"])
+        generate_tiles_for_layer(
+            src_geotiff=layer["path"],
+            output_dir=out_layer_dir,
+            layer_name=layer["name"],
+            colormap_type=layer["colormap"],
+            zooms=[11, 12, 13, 14]
+        )
+
+
+if __name__ == "__main__":
+    generate_all_case_tiles()

@@ -1,0 +1,141 @@
+{
+  "schema_version": "2.0.0",
+  "case_id": "real_event_rio_grande_do_sul",
+  "event_name": "Rio Grande do Sul Flood (May 2024)",
+  "aoi_bbox": [
+    -51.414362,
+    -29.911299,
+    -51.320872,
+    -29.829819
+  ],
+  "center": [
+    -51.367617,
+    -29.870559,
+    12
+  ],
+  "analysis_crs": "EPSG:32622",
+  "grid_resolution": 30.0,
+  "scenes": [
+    {
+      "scene_id": "OPERA_L2_RTC-S1_T22JBM_20240426T220719Z_VV",
+      "acquisition_timestamp": "2024-04-26T22:07:19Z",
+      "track": "T22JBM",
+      "direction": "descending",
+      "maturity": "provisional",
+      "processing_release": "v1.0",
+      "polarization": "VV",
+      "source_url": "https://search.asf.alaska.edu/"
+    },
+    {
+      "scene_id": "OPERA_L2_RTC-S1_T22JBM_20240508T220719Z_VV",
+      "acquisition_timestamp": "2024-05-08T22:07:19Z",
+      "track": "T22JBM",
+      "direction": "descending",
+      "maturity": "provisional",
+      "processing_release": "v1.0",
+      "polarization": "VV",
+      "source_url": "https://search.asf.alaska.edu/"
+    }
+  ],
+  "reference_product": {
+    "product_name": "NASA OPERA DSWx-S1",
+    "granule_id": "OPERA_L3_DSWx-S1_T22JBM_20240508T220719Z_v1.0_B01_WTR",
+    "acquisition_timestamp": "2024-05-08T22:07:19Z",
+    "source_url": "https://podaac.jpl.nasa.gov/OPERA"
+  },
+  "land_cover_source": "Copernicus / Dynamic World 10m Land Cover",
+  "preprocessing": {
+    "resampling_continuous": "bilinear",
+    "resampling_categorical": "nearest",
+    "speckle_filter": "median_3x3",
+    "radiometric_calibration": "linear_to_db"
+  },
+  "threshold_configs": [
+    {
+      "id": "conservative",
+      "label": "Conservative",
+      "specular_decrease_thresh_db": -4.0,
+      "double_bounce_increase_thresh_db": 3.5
+    },
+    {
+      "id": "central",
+      "label": "Central (Recommended)",
+      "specular_decrease_thresh_db": -3.0,
+      "double_bounce_increase_thresh_db": 2.5
+    },
+    {
+      "id": "aggressive",
+      "label": "Sensitive / Aggressive",
+      "specular_decrease_thresh_db": -2.0,
+      "double_bounce_increase_thresh_db": 1.8
+    }
+  ],
+  "layers": [
+    {
+      "id": "pre_sar",
+      "name": "Pre-Event Radar (Apr 26, 2024)",
+      "type": "raster",
+      "tile_url_template": "tiles/pre_sar/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14,
+      "description": "Baseline Sentinel-1 RTC backscatter in decibels (-25 dB to 0 dB)"
+    },
+    {
+      "id": "post_sar",
+      "name": "During-Event Radar (May 08, 2024)",
+      "type": "raster",
+      "tile_url_template": "tiles/post_sar/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14,
+      "description": "Peak flood Sentinel-1 RTC backscatter using identical grayscale stretch"
+    },
+    {
+      "id": "diff_db",
+      "name": "Signed Change (\u0394dB)",
+      "type": "raster",
+      "tile_url_template": "tiles/diff_db/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14,
+      "description": "Diverging backscatter change: Dark Blue (<= -3dB) to Amber/Red (>= +2.5dB)"
+    },
+    {
+      "id": "opera_water",
+      "name": "NASA OPERA Reference Water",
+      "type": "raster",
+      "tile_url_template": "tiles/opera_water/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14,
+      "description": "Valid OPERA DSWx surface water observations (Cyan)"
+    },
+    {
+      "id": "gap_overlay",
+      "name": "Cross-Sensor Gap (Additional Candidates)",
+      "type": "raster",
+      "tile_url_template": "tiles/gap_overlay/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14,
+      "description": "Candidates absent from valid OPERA water classification (Amber)"
+    }
+  ],
+  "regions_url": "regions.geojson",
+  "statistics": {
+    "total_valid_area_sqkm": 78.8544,
+    "baseline_water_area_sqkm": 20.6622,
+    "candidate_inundation_area_sqkm": 18.5094,
+    "specular_candidate_area_sqkm": 14.9625,
+    "double_bounce_candidate_area_sqkm": 3.5469,
+    "overlap_area_sqkm": 13.671,
+    "additional_candidate_area_sqkm": 4.8384,
+    "baseline_only_area_sqkm": 6.9912,
+    "iou_agreement": 0.5361,
+    "additional_candidate_ratio": 0.2614,
+    "metrics_notes": "IoU is reported strictly as cross-sensor agreement between SAR candidate inundation and OPERA DSWx baseline, NOT detection accuracy or ground truth. Independent in-situ validation labels are required for precision/recall/F1 metrics."
+  },
+  "limitations": [
+    "Candidate inundation inferred from SAR backscatter anomalies; not verified ground truth.",
+    "Double-bounce scattering can be influenced by soil moisture changes or agricultural cycles.",
+    "NASA OPERA DSWx is a classified surface water product; cross-sensor disagreement denotes observation gap, not defect."
+  ],
+  "generated_at": "2026-11-14T13:08:39.115718+00:00",
+  "evidence_mode": "cached_verified_case"
+}
