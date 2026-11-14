@@ -193,19 +193,26 @@ def generate_tiles_for_layer(
 def generate_all_case_tiles(
     case_dir: str = "data/cases/real_event_rio_grande_do_sul",
     processed_dir: str = "data/processed/rio_grande_do_sul_event",
-    tiles_base_dir: str = "data/cases/real_event_rio_grande_do_sul/tiles"
+    tiles_base_dir: str = None
 ):
+    import glob
+    if tiles_base_dir is None:
+        tiles_base_dir = os.path.join(case_dir, "tiles")
     os.makedirs(tiles_base_dir, exist_ok=True)
+
+    vv_files = sorted(glob.glob(os.path.join(case_dir, "*_VV.tif")))
+    pre_vv_path = vv_files[0] if len(vv_files) > 0 else None
+    post_vv_path = vv_files[-1] if len(vv_files) > 1 else pre_vv_path
 
     layers = [
         {
             "name": "pre_sar",
-            "path": os.path.join(case_dir, "OPERA_L2_RTC-S1_T22JBM_20240426T220719Z_VV.tif"),
+            "path": pre_vv_path,
             "colormap": "sar_db"
         },
         {
             "name": "post_sar",
-            "path": os.path.join(case_dir, "OPERA_L2_RTC-S1_T22JBM_20240508T220719Z_VV.tif"),
+            "path": post_vv_path,
             "colormap": "sar_db"
         },
         {
@@ -226,6 +233,8 @@ def generate_all_case_tiles(
     ]
 
     for layer in layers:
+        if not layer["path"] or not os.path.exists(layer["path"]):
+            continue
         out_layer_dir = os.path.join(tiles_base_dir, layer["name"])
         generate_tiles_for_layer(
             src_geotiff=layer["path"],
@@ -237,4 +246,6 @@ def generate_all_case_tiles(
 
 
 if __name__ == "__main__":
-    generate_all_case_tiles()
+    case_dir = sys.argv[1] if len(sys.argv) > 1 else "data/cases/real_event_rio_grande_do_sul"
+    proc_dir = sys.argv[2] if len(sys.argv) > 2 else "data/processed/rio_grande_do_sul_event"
+    generate_all_case_tiles(case_dir=case_dir, processed_dir=proc_dir)
