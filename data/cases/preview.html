@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TERRA//PULSE — Inundation & Gap Intelligence Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #080d1a; color: #f8fafc; overflow: hidden; }
+    #app { display: flex; height: 100vh; width: 100vw; }
+    #sidebar { width: 390px; background: rgba(9, 14, 26, 0.96); backdrop-filter: blur(14px); border-right: 1px solid #1e293b; display: flex; flex-direction: column; z-index: 10; padding: 22px; overflow-y: auto; }
+    #map-container { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+    
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-cyan { background: rgba(6, 182, 212, 0.2); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.5); }
+    .badge-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); }
+    
+    h1 { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; color: #38bdf8; margin-bottom: 2px; }
+    .subtitle { font-size: 12px; color: #94a3b8; margin-bottom: 14px; }
+    
+    .event-select-wrap { margin-bottom: 14px; }
+    .event-select-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.75px; margin-bottom: 6px; display: block; }
+    .event-select { width: 100%; padding: 9px 12px; background: #131c2e; border: 1px solid #38bdf8; border-radius: 8px; color: #f8fafc; font-size: 13px; font-weight: 600; cursor: pointer; outline: none; }
+    
+    .section-title { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.75px; margin-top: 14px; margin-bottom: 8px; }
+    .layer-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #111a2e; border: 1px solid #1e293b; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+    .layer-item:hover { background: #16223b; }
+    .layer-item input[type="checkbox"] { cursor: pointer; accent-color: #38bdf8; }
+    
+    .stats-card { background: #111a2e; border: 1px solid #1e293b; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+    .stats-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+    .stats-row:last-child { margin-bottom: 0; }
+    .stats-val { font-weight: 600; color: #f1f5f9; }
+    
+    #evidence-drawer { margin-top: 12px; padding: 14px; background: #16223b; border-radius: 8px; border-left: 4px solid #fbbf24; font-size: 12px; display: none; }
+    #evidence-drawer h3 { font-size: 13px; color: #fbbf24; margin-bottom: 6px; }
+    
+    .slider-card { background: #111a2e; border: 1px solid #1e293b; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+    .slider-card label { font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: 500; }
+    .slider-card input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; }
+    
+    .btn-group { display: flex; gap: 6px; margin-bottom: 10px; }
+    .btn { flex: 1; padding: 7px 8px; background: #111a2e; border: 1px solid #1e293b; color: #94a3b8; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; }
+    .btn.active { background: #0284c7; color: #ffffff; border-color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="sidebar">
+      <div>
+        <h1>TERRA//PULSE</h1>
+        <p class="subtitle">NISAR / RTC-S1 Inundation & Gap Intelligence</p>
+      </div>
+
+      <div class="event-select-wrap">
+        <label class="event-select-label">Select Flood Incident Study</label>
+        <select id="case-selector" class="event-select" onchange="switchCase(this.value)">
+          <option value="real_event_rio_grande_do_sul">📍 Rio Grande do Sul (May 2024 Flood)</option>
+          <option value="mumbai_monsoon_event">📍 Mumbai, India (July 2023 Monsoon & Mangroves)</option>
+        </select>
+      </div>
+
+      <div class="stats-card">
+        <div id="stats-event-title" style="font-size: 11px; color: #38bdf8; margin-bottom: 8px; font-weight: 700; text-transform: uppercase;">Event Intelligence</div>
+        <div class="stats-row"><span>Total Valid Area</span><span id="st-total" class="stats-val">78.85 km²</span></div>
+        <div class="stats-row"><span>OPERA Baseline Water</span><span id="st-opera" class="stats-val">30.23 km²</span></div>
+        <div class="stats-row"><span>Candidate Inundation</span><span id="st-cand" class="stats-val">35.71 km²</span></div>
+        <div class="stats-row"><span>- Specular (Open Flood)</span><span id="st-spec" class="stats-val" style="color: #22d3ee;">25.52 km²</span></div>
+        <div class="stats-row"><span>- Double-Bounce (Canopy Gap)</span><span id="st-db" class="stats-val" style="color: #fbbf24;">10.19 km²</span></div>
+        <div class="stats-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #1e293b;"><span>Sensor Agreement (IoU)</span><span id="st-iou" class="stats-val" style="color: #38bdf8;">58.1%</span></div>
+      </div>
+
+      <div class="section-title">Basemap & Perspective</div>
+      <div class="btn-group">
+        <button id="btn-sat" class="btn active" onclick="setBasemap('satellite')">Satellite Ortho</button>
+        <button id="btn-dark" class="btn" onclick="setBasemap('dark')">Dark Canvas</button>
+        <button id="btn-3d" class="btn" onclick="toggle3DPitch()">3D Tilt</button>
+      </div>
+
+      <div class="section-title">Cartographic Labels</div>
+      <div class="layer-item">
+        <span>📍 City, Town & River Labels</span>
+        <input type="checkbox" id="toggle-labels" checked>
+      </div>
+
+      <div class="section-title">Radar Grayscale Backdrop</div>
+      <div class="slider-card">
+        <label><span>Radar Backdrop Opacity</span><span id="lbl-radar-op">35%</span></label>
+        <input type="range" id="radar-opacity-slider" min="0" max="100" value="35">
+      </div>
+      <div class="slider-card">
+        <label><span id="lbl-swipe-dates">Pre-Event ⟵ Swipe ⟶ Peak Flood</span></label>
+        <input type="range" id="swipe-slider" min="0" max="100" value="50">
+      </div>
+
+      <div class="section-title">Inundation & Intelligence Layers</div>
+      <div class="layer-item">
+        <span><span class="badge badge-cyan">OPERA</span> Reference Surface Water</span>
+        <input type="checkbox" id="toggle-opera" checked>
+      </div>
+      <div class="layer-item">
+        <span><span class="badge badge-amber">Gap</span> Sub-Canopy Flood (Double Bounce)</span>
+        <input type="checkbox" id="toggle-gap" checked>
+      </div>
+      <div class="layer-item">
+        <span>Signed Change Heatmap (ΔdB)</span>
+        <input type="checkbox" id="toggle-diff" checked>
+      </div>
+      <div class="layer-item">
+        <span>Candidate Polygons (Vector Borders)</span>
+        <input type="checkbox" id="toggle-polygons" checked>
+      </div>
+
+      <div id="evidence-drawer">
+        <h3 id="ev-title">Region Evidence</h3>
+        <p id="ev-type" style="margin-bottom: 4px;"></p>
+        <p id="ev-area" style="margin-bottom: 4px;"></p>
+        <p id="ev-delta" style="margin-bottom: 4px;"></p>
+        <p id="ev-status" style="margin-bottom: 6px;"></p>
+        <p id="ev-desc" style="color: #cbd5e1; font-style: italic; line-height: 1.4;"></p>
+      </div>
+    </div>
+
+    <div id="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentCase = 'real_event_rio_grande_do_sul';
+    let is3D = false;
+    let baseRadarOpacity = 0.35;
+    let swipeFraction = 0.5;
+
+    const CASE_METRICS = {
+      'real_event_rio_grande_do_sul': {
+        title: 'Rio Grande do Sul (May 2024 Flood)',
+        total: '78.85 km²',
+        opera: '30.23 km²',
+        cand: '35.71 km²',
+        spec: '25.52 km²',
+        db: '10.19 km²',
+        iou: '58.1%',
+        center: [-51.367, -29.870],
+        zoom: 12.3,
+        bounds: [-51.414362, -29.911299, -51.320872, -29.829819],
+        swipeDates: 'Pre (Apr 26) ⟵ Split ⟶ Peak (May 08)'
+      },
+      'mumbai_monsoon_event': {
+        title: 'Mumbai Monsoon & Mangroves (July 2023)',
+        total: '78.85 km²',
+        opera: '53.37 km²',
+        cand: '46.37 km²',
+        spec: '36.89 km²',
+        db: '9.48 km²',
+        iou: '53.2%',
+        center: [72.9038, 19.1206],
+        zoom: 12.3,
+        bounds: [72.860559, 19.079528, 72.9471, 19.161786],
+        swipeDates: 'Pre-Monsoon (May) ⟵ Split ⟶ Deluge (July)'
+      }
+    };
+
+    // Initialize MapLibre GL
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {
+          'esri-satellite': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri, Maxar, Earthstar Geographics'
+          },
+          'esri-dark': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri, HERE, Garmin, © OpenStreetMap'
+          },
+          'esri-sat-labels': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri'
+          },
+          'esri-dark-labels': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri'
+          }
+        },
+        layers: [
+          {
+            id: 'esri-sat-layer',
+            type: 'raster',
+            source: 'esri-satellite',
+            minzoom: 0,
+            maxzoom: 19,
+            layout: { visibility: 'visible' }
+          },
+          {
+            id: 'esri-dark-layer',
+            type: 'raster',
+            source: 'esri-dark',
+            minzoom: 0,
+            maxzoom: 19,
+            layout: { visibility: 'none' }
+          }
+        ]
+      },
+      center: [-51.367, -29.870],
+      zoom: 12.3,
+      pitch: 0,
+      bearing: 0
+    });
+
+    map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+
+    function loadCaseLayers(caseId) {
+      const cfg = CASE_METRICS[caseId];
+
+      // Remove existing case layers if present
+      ['regions-line', 'regions-fill', 'gap-layer', 'opera-layer', 'diff-layer', 'post-sar-layer', 'pre-sar-layer'].forEach(id => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
+      ['regions-source', 'gap-source', 'opera-source', 'diff-source', 'post-sar-source', 'pre-sar-source'].forEach(id => {
+        if (map.getSource(id)) map.removeSource(id);
+      });
+
+      // 1. Pre-SAR layer
+      map.addSource('pre-sar-source', {
+        type: 'raster',
+        tiles: [`/${caseId}/tiles/pre_sar/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14,
+        bounds: cfg.bounds
+      });
+      map.addLayer({
+        id: 'pre-sar-layer',
+        type: 'raster',
+        source: 'pre-sar-source',
+        paint: { 'raster-opacity': baseRadarOpacity }
+      });
+
+      // 2. Post-SAR layer
+      map.addSource('post-sar-source', {
+        type: 'raster',
+        tiles: [`/${caseId}/tiles/post_sar/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14,
+        bounds: cfg.bounds
+      });
+      map.addLayer({
+        id: 'post-sar-layer',
+        type: 'raster',
+        source: 'post-sar-source',
+        paint: { 'raster-opacity': baseRadarOpacity * swipeFraction }
+      });
+
+      // 3. Diff layer
+      map.addSource('diff-source', {
+        type: 'raster',
+        tiles: [`/${caseId}/tiles/diff_db/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14,
+        bounds: cfg.bounds
+      });
+      map.addLayer({
+        id: 'diff-layer',
+        type: 'raster',
+        source: 'diff-source',
+        paint: { 'raster-opacity': 0.85 }
+      });
+
+      // 4. OPERA Water
+      map.addSource('opera-source', {
+        type: 'raster',
+        tiles: [`/${caseId}/tiles/opera_water/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14,
+        bounds: cfg.bounds
+      });
+      map.addLayer({
+        id: 'opera-layer',
+        type: 'raster',
+        source: 'opera-source',
+        paint: { 'raster-opacity': 0.85 }
+      });
+
+      // 5. Gap Overlay
+      map.addSource('gap-source', {
+        type: 'raster',
+        tiles: [`/${caseId}/tiles/gap_overlay/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14,
+        bounds: cfg.bounds
+      });
+      map.addLayer({
+        id: 'gap-layer',
+        type: 'raster',
+        source: 'gap-source',
+        paint: { 'raster-opacity': 0.95 }
+      });
+
+      // 6. Regions GeoJSON
+      map.addSource('regions-source', {
+        type: 'geojson',
+        data: `/${caseId}/regions.geojson`
+      });
+
+      map.addLayer({
+        id: 'regions-fill',
+        type: 'fill',
+        source: 'regions-source',
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'candidate_type'],
+            'double_bounce', '#f59e0b',
+            '#06b6d4'
+          ],
+          'fill-opacity': 0.3
+        }
+      });
+
+      map.addLayer({
+        id: 'regions-line',
+        type: 'line',
+        source: 'regions-source',
+        paint: {
+          'line-color': [
+            'match',
+            ['get', 'candidate_type'],
+            'double_bounce', '#fbbf24',
+            '#22d3ee'
+          ],
+          'line-width': 2.5
+        }
+      });
+
+      // Update UI labels and metrics
+      document.getElementById('stats-event-title').innerText = cfg.title;
+      document.getElementById('st-total').innerText = cfg.total;
+      document.getElementById('st-opera').innerText = cfg.opera;
+      document.getElementById('st-cand').innerText = cfg.cand;
+      document.getElementById('st-spec').innerText = cfg.spec;
+      document.getElementById('st-db').innerText = cfg.db;
+      document.getElementById('st-iou').innerText = cfg.iou;
+      document.getElementById('lbl-swipe-dates').innerText = cfg.swipeDates;
+      document.getElementById('evidence-drawer').style.display = 'none';
+
+      // Fly to AOI
+      map.flyTo({
+        center: cfg.center,
+        zoom: cfg.zoom,
+        speed: 1.2,
+        curve: 1.4,
+        essential: true
+      });
+    }
+
+    map.on('load', () => {
+      // Add reference labels
+      map.addLayer({
+        id: 'sat-labels-layer',
+        type: 'raster',
+        source: 'esri-sat-labels',
+        minzoom: 0,
+        maxzoom: 19,
+        layout: { visibility: 'visible' },
+        paint: { 'raster-opacity': 0.95 }
+      });
+
+      map.addLayer({
+        id: 'dark-labels-layer',
+        type: 'raster',
+        source: 'esri-dark-labels',
+        minzoom: 0,
+        maxzoom: 19,
+        layout: { visibility: 'none' },
+        paint: { 'raster-opacity': 0.95 }
+      });
+
+      loadCaseLayers(currentCase);
+
+      // Interactivity
+      map.on('mouseenter', 'regions-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'regions-fill', () => { map.getCanvas().style.cursor = ''; });
+
+      map.on('click', 'regions-fill', (e) => {
+        if (e.features && e.features.length > 0) {
+          const props = e.features[0].properties;
+          const drawer = document.getElementById('evidence-drawer');
+          drawer.style.display = 'block';
+          document.getElementById('ev-title').innerText = `${props.region_id} Evidence Record`;
+          document.getElementById('ev-type').innerHTML = `<b>Type:</b> ${props.candidate_type === 'double_bounce' ? '<span style="color:#fbbf24">Canopy Double-Bounce (' + props.vegetation_class + ')</span>' : '<span style="color:#22d3ee">Specular Open Flood</span>'}`;
+          document.getElementById('ev-area').innerHTML = `<b>Area:</b> ${props.area_km2} km²`;
+          document.getElementById('ev-delta').innerHTML = `<b>Signed Change:</b> ${props.vv_delta_db} dB`;
+          document.getElementById('ev-status').innerHTML = `<b>Status:</b> ${props.opera_status === 'additional_candidate' ? '<span style="color:#fbbf24">Additional Candidate (Cross-Sensor Gap)</span>' : '<span style="color:#22d3ee">Agreement with OPERA</span>'}`;
+          document.getElementById('ev-desc').innerText = props.interpretation;
+        }
+      });
+    });
+
+    function switchCase(caseId) {
+      currentCase = caseId;
+      loadCaseLayers(caseId);
+    }
+
+    function setBasemap(type) {
+      document.getElementById('btn-sat').classList.toggle('active', type === 'satellite');
+      document.getElementById('btn-dark').classList.toggle('active', type === 'dark');
+      map.setLayoutProperty('esri-sat-layer', 'visibility', type === 'satellite' ? 'visible' : 'none');
+      map.setLayoutProperty('esri-dark-layer', 'visibility', type === 'dark' ? 'visible' : 'none');
+
+      const showLabels = document.getElementById('toggle-labels').checked;
+      map.setLayoutProperty('sat-labels-layer', 'visibility', (type === 'satellite' && showLabels) ? 'visible' : 'none');
+      map.setLayoutProperty('dark-labels-layer', 'visibility', (type === 'dark' && showLabels) ? 'visible' : 'none');
+    }
+
+    function toggle3DPitch() {
+      is3D = !is3D;
+      document.getElementById('btn-3d').classList.toggle('active', is3D);
+      map.easeTo({
+        pitch: is3D ? 55 : 0,
+        bearing: is3D ? -25 : 0,
+        duration: 1200
+      });
+    }
+
+    document.getElementById('radar-opacity-slider').addEventListener('input', (e) => {
+      baseRadarOpacity = parseFloat(e.target.value) / 100.0;
+      document.getElementById('lbl-radar-op').innerText = `${e.target.value}%`;
+      updateRadarOpacity();
+    });
+
+    document.getElementById('swipe-slider').addEventListener('input', (e) => {
+      swipeFraction = parseFloat(e.target.value) / 100.0;
+      updateRadarOpacity();
+    });
+
+    function updateRadarOpacity() {
+      if (map.getLayer('pre-sar-layer')) {
+        map.setPaintProperty('pre-sar-layer', 'raster-opacity', baseRadarOpacity);
+      }
+      if (map.getLayer('post-sar-layer')) {
+        map.setPaintProperty('post-sar-layer', 'raster-opacity', baseRadarOpacity * swipeFraction);
+      }
+    }
+
+    document.getElementById('toggle-labels').addEventListener('change', (e) => {
+      const isSat = document.getElementById('btn-sat').classList.contains('active');
+      map.setLayoutProperty('sat-labels-layer', 'visibility', (isSat && e.target.checked) ? 'visible' : 'none');
+      map.setLayoutProperty('dark-labels-layer', 'visibility', (!isSat && e.target.checked) ? 'visible' : 'none');
+    });
+
+    document.getElementById('toggle-opera').addEventListener('change', (e) => {
+      map.setLayoutProperty('opera-layer', 'visibility', e.target.checked ? 'visible' : 'none');
+    });
+    document.getElementById('toggle-gap').addEventListener('change', (e) => {
+      map.setLayoutProperty('gap-layer', 'visibility', e.target.checked ? 'visible' : 'none');
+    });
+    document.getElementById('toggle-diff').addEventListener('change', (e) => {
+      map.setLayoutProperty('diff-layer', 'visibility', e.target.checked ? 'visible' : 'none');
+    });
+    document.getElementById('toggle-polygons').addEventListener('change', (e) => {
+      const vis = e.target.checked ? 'visible' : 'none';
+      map.setLayoutProperty('regions-fill', 'visibility', vis);
+      map.setLayoutProperty('regions-line', 'visibility', vis);
+    });
+  </script>
+</body>
+</html>
