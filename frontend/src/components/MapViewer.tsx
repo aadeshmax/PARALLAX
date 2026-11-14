@@ -5,8 +5,9 @@ import maplibreglWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 
 // Explicitly bind MapLibre worker bundle URL to prevent Vite 404 worker load issues
 maplibregl.setWorkerUrl(maplibreglWorkerUrl);
+
 import { AnalysisMetrics, CaseStudy } from '../types';
-import { Layers, Compass, MapPin, Sparkles, ShieldAlert } from 'lucide-react';
+import { Layers, Compass, MapPin, Sparkles, ShieldAlert, Sliders, Eye } from 'lucide-react';
 
 interface MapViewerProps {
   metrics: AnalysisMetrics | null;
@@ -34,6 +35,29 @@ interface EvidenceInfo {
   scientificLabel: string;
 }
 
+// Field validation staging sites per case (Felt / GIS style)
+const CASE_INSPECTION_SITES: Record<string, Array<{ id: string; name: string; tag: string; coords: [number, number]; desc: string; type: 'veg' | 'water' }>> = {
+  real_event_rio_grande_do_sul: [
+    { id: 'site-1', name: 'Site 1: Jacuí Delta Canopy Gap', tag: 'Double-Bounce (+4.8 dB)', coords: [-51.345, -29.865], desc: 'Dihedral radar double-bounce under flooded woody gallery forest', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Taquari River Confluence', tag: 'Confirmed Water (-8.6 dB)', coords: [-51.390, -29.890], desc: 'Severe specular radar attenuation confirmed by OPERA DSWx', type: 'water' },
+    { id: 'site-3', name: 'Site 3: Triunfo Lowland Agriculture', tag: 'Plausible Inundation', coords: [-51.320, -29.840], desc: 'Submerged field margins and canal overflow', type: 'veg' }
+  ],
+  mumbai_monsoon_event: [
+    { id: 'site-1', name: 'Site 1: Thane Creek Mangrove Sanctuary', tag: 'Double-Bounce Gap (+4.2 dB)', coords: [72.940, 19.145], desc: 'Dense Avicennia mangrove canopy inundation during peak monsoon tide', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Mithi River Spillway', tag: 'Confirmed Water (-11.2 dB)', coords: [72.880, 19.095], desc: 'Urban river channel overflow with severe specular radar drop', type: 'water' },
+    { id: 'site-3', name: 'Site 3: Vikhroli Wetland Basin', tag: 'Canopy Reflection', coords: [72.920, 19.115], desc: 'Canopy-water dihedral scattering unmapped by standard optical DSWx', type: 'veg' }
+  ],
+  chennai_live_case: [
+    { id: 'site-1', name: 'Site 1: Pallikaranai Marshlands', tag: 'Double-Bounce Gap (+4.7 dB)', coords: [80.145, 13.235], desc: 'Protected reed and mangrove swamp submerged beneath floodwaters', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Cooum River Discharge', tag: 'Confirmed Water (-9.8 dB)', coords: [80.125, 13.275], desc: 'Severe bank overflow and urban street inundation', type: 'water' },
+    { id: 'site-3', name: 'Site 3: Adyar Basin Corridor', tag: 'Canopy Double-Bounce', coords: [80.105, 13.250], desc: 'Riparian tree canopy standing in floodwater', type: 'veg' }
+  ],
+  demo_flood_case: [
+    { id: 'site-1', name: 'Site 1: Brittany Woody Basin', tag: 'Double-Bounce Gap (+3.6 dB)', coords: [-4.635, 49.035], desc: 'Inundated deciduous forest canopy', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Reservoir Flood Pool', tag: 'Confirmed Water (-7.9 dB)', coords: [-4.610, 49.055], desc: 'Open reservoir surface extent', type: 'water' }
+  ]
+};
+
 export const MapViewer: React.FC<MapViewerProps> = ({
   metrics,
   geojsonData,
@@ -51,7 +75,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   const [basemap, setBasemap] = useState<'satellite' | 'dark'>('satellite');
   const [is3D, setIs3D] = useState<boolean>(true);
   const [showLabels, setShowLabels] = useState<boolean>(true);
-  const [radarOpacity, setRadarOpacity] = useState<number>(45);
+  const [showSites, setShowSites] = useState<boolean>(true);
+  const [radarMode, setRadarMode] = useState<'post' | 'pre' | 'compare'>('post');
+  const [radarOpacity, setRadarOpacity] = useState<number>(85);
   const [localSwipe, setLocalSwipe] = useState<number>(sliderPos);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceInfo | null>(null);
 
@@ -196,6 +222,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
   // 2. Setup Event Handlers (Only Once)
   const setupInteractions = (map: maplibregl.Map) => {
+    // Click candidate polygons
     map.on('click', 'candidates-fill', (e) => {
       if (!e.features || !e.features[0]) return;
       const p = e.features[0].properties as any;
@@ -210,10 +237,35 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       });
     });
 
+    // Click inspection site markers (Felt style)
+    map.on('click', 'site-markers-dot', (e) => {
+      if (!e.features || !e.features[0]) return;
+      const p = e.features[0].properties as any;
+      const geom = e.features[0].geometry as any;
+      if (geom && geom.coordinates) {
+        map.flyTo({ center: geom.coordinates, zoom: 13.5, speed: 1.2 });
+      }
+      setSelectedEvidence({
+        className: p.name,
+        classId: p.type === 'veg' ? 2 : 1,
+        areaHa: 4.5,
+        detectionMechanism: p.desc,
+        crossProductContext: p.tag,
+        evidenceTier: 'Field Validation Staging Target',
+        scientificLabel: 'In-Situ Radar Evaluation Site'
+      });
+    });
+
     map.on('mouseenter', 'candidates-fill', () => {
       map.getCanvas().style.cursor = 'pointer';
     });
     map.on('mouseleave', 'candidates-fill', () => {
+      map.getCanvas().style.cursor = '';
+    });
+    map.on('mouseenter', 'site-markers-dot', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'site-markers-dot', () => {
       map.getCanvas().style.cursor = '';
     });
   };
@@ -238,39 +290,59 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       });
 
       const baseUrl = `/data/cases/${activeCaseId}/tiles`;
+      const baseOp = radarOpacity / 100;
+      const swipeRatio = localSwipe / 100;
+
+      const preOp = radarMode === 'pre'
+        ? baseOp
+        : radarMode === 'compare'
+          ? baseOp * (1 - swipeRatio)
+          : 0;
+
+      const postOp = radarMode === 'post'
+        ? baseOp
+        : radarMode === 'compare'
+          ? baseOp * swipeRatio
+          : 0;
 
       try {
-        // 1. Pre-SAR
+        // 1. Pre-SAR (Hardware linear interpolation up to zoom 18)
         map.addSource('pre-sar', {
           type: 'raster',
           tiles: [`${baseUrl}/pre_sar/{z}/{x}/{y}.png`],
           tileSize: 256,
           minzoom: 11,
-          maxzoom: 14
+          maxzoom: 18
         });
         map.addLayer({
           id: 'pre-sar-layer',
           type: 'raster',
           source: 'pre-sar',
           paint: {
-            'raster-opacity': (radarOpacity / 100) * (1 - localSwipe / 100)
+            'raster-opacity': preOp,
+            'raster-resampling': 'linear',
+            'raster-contrast': 0.18,
+            'raster-fade-duration': 0
           }
         });
 
-        // 2. Post-SAR
+        // 2. Post-SAR (Hardware linear interpolation up to zoom 18)
         map.addSource('post-sar', {
           type: 'raster',
           tiles: [`${baseUrl}/post_sar/{z}/{x}/{y}.png`],
           tileSize: 256,
           minzoom: 11,
-          maxzoom: 14
+          maxzoom: 18
         });
         map.addLayer({
           id: 'post-sar-layer',
           type: 'raster',
           source: 'post-sar',
           paint: {
-            'raster-opacity': (radarOpacity / 100) * (localSwipe / 100)
+            'raster-opacity': postOp,
+            'raster-resampling': 'linear',
+            'raster-contrast': 0.18,
+            'raster-fade-duration': 0
           }
         });
 
@@ -280,14 +352,17 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           tiles: [`${baseUrl}/diff_db/{z}/{x}/{y}.png`],
           tileSize: 256,
           minzoom: 11,
-          maxzoom: 14
+          maxzoom: 18
         });
         map.addLayer({
           id: 'diff-db-layer',
           type: 'raster',
           source: 'diff-db',
           layout: { visibility: layers.showCompareSlider ? 'visible' : 'none' },
-          paint: { 'raster-opacity': 0.75 }
+          paint: {
+            'raster-opacity': 0.85,
+            'raster-resampling': 'linear'
+          }
         });
 
         // 4. OPERA Water
@@ -296,14 +371,17 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           tiles: [`${baseUrl}/opera_water/{z}/{x}/{y}.png`],
           tileSize: 256,
           minzoom: 11,
-          maxzoom: 14
+          maxzoom: 18
         });
         map.addLayer({
           id: 'opera-water-layer',
           type: 'raster',
           source: 'opera-water',
           layout: { visibility: layers.showOperaWater ? 'visible' : 'none' },
-          paint: { 'raster-opacity': 0.85 }
+          paint: {
+            'raster-opacity': 0.85,
+            'raster-resampling': 'linear'
+          }
         });
 
         // 5. Gap Overlay
@@ -312,15 +390,138 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           tiles: [`${baseUrl}/gap_overlay/{z}/{x}/{y}.png`],
           tileSize: 256,
           minzoom: 11,
-          maxzoom: 14
+          maxzoom: 18
         });
         map.addLayer({
           id: 'gap-overlay-layer',
           type: 'raster',
           source: 'gap-overlay',
           layout: { visibility: layers.showCrossSensorGap ? 'visible' : 'none' },
-          paint: { 'raster-opacity': 0.90 }
+          paint: {
+            'raster-opacity': 0.90,
+            'raster-resampling': 'linear'
+          }
         });
+
+        // 6. SAR Swath Frame / Footprint (Felt red perimeter box)
+        const aoiBbox = currentCase?.aoi_bbox || (
+          activeCaseId === 'real_event_rio_grande_do_sul' ? [-51.414, -29.911, -51.321, -29.830] :
+          activeCaseId === 'mumbai_monsoon_event' ? [72.861, 19.080, 72.947, 19.162] :
+          activeCaseId === 'chennai_live_case' ? [80.077, 13.214, 80.160, 13.296] :
+          [-4.68, 49.00, -4.56, 49.08]
+        );
+
+        const footprintGeojson = {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            properties: { label: 'Sentinel-1 L2 RTC-S1 Swath Perimeter' },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [aoiBbox[0], aoiBbox[1]],
+                [aoiBbox[2], aoiBbox[1]],
+                [aoiBbox[2], aoiBbox[3]],
+                [aoiBbox[0], aoiBbox[3]],
+                [aoiBbox[0], aoiBbox[1]]
+              ]]
+            }
+          }]
+        };
+
+        safelyRemoveLayerAndSource(map, 'swath-footprint-line', 'swath-footprint');
+        map.addSource('swath-footprint', {
+          type: 'geojson',
+          data: footprintGeojson as any
+        });
+        map.addLayer({
+          id: 'swath-footprint-line',
+          type: 'line',
+          source: 'swath-footprint',
+          paint: {
+            'line-color': '#f43f5e',
+            'line-width': 1.6,
+            'line-dasharray': [4, 2],
+            'line-opacity': 0.9
+          }
+        });
+
+        // 7. Staging Sites Markers (Felt style green markers & labels)
+        const sites = CASE_INSPECTION_SITES[activeCaseId] || [];
+        const sitesGeojson = {
+          type: 'FeatureCollection',
+          features: sites.map(s => ({
+            type: 'Feature',
+            properties: {
+              id: s.id,
+              name: s.name,
+              tag: s.tag,
+              desc: s.desc,
+              type: s.type
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: s.coords
+            }
+          }))
+        };
+
+        safelyRemoveLayerAndSource(map, 'site-markers-label', 'inspection-sites');
+        safelyRemoveLayerAndSource(map, 'site-markers-dot', 'inspection-sites');
+        safelyRemoveLayerAndSource(map, 'site-markers-pulse', 'inspection-sites');
+
+        map.addSource('inspection-sites', {
+          type: 'geojson',
+          data: sitesGeojson as any
+        });
+
+        // Glowing green pulse halo
+        map.addLayer({
+          id: 'site-markers-pulse',
+          type: 'circle',
+          source: 'inspection-sites',
+          layout: { visibility: showSites ? 'visible' : 'none' },
+          paint: {
+            'circle-radius': 11,
+            'circle-color': '#10b981',
+            'circle-opacity': 0.35
+          }
+        });
+
+        // White-bordered emerald dot
+        map.addLayer({
+          id: 'site-markers-dot',
+          type: 'circle',
+          source: 'inspection-sites',
+          layout: { visibility: showSites ? 'visible' : 'none' },
+          paint: {
+            'circle-radius': 5.5,
+            'circle-color': '#10b981',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+
+        // Clear readable label
+        map.addLayer({
+          id: 'site-markers-label',
+          type: 'symbol',
+          source: 'inspection-sites',
+          layout: {
+            visibility: showSites ? 'visible' : 'none',
+            'text-field': ['get', 'name'],
+            'text-size': 11,
+            'text-offset': [0, 1.4],
+            'text-anchor': 'top',
+            'text-allow-overlap': true
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#090d16',
+            'text-halo-width': 2.5
+          }
+        });
+
       } catch (e) {
         console.warn("Notice loading raster tiles:", e);
       }
@@ -354,6 +555,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             data: dataToLoad
           });
 
+          // Soft translucent fill allowing underlying photographic radar textures to be visible
           map.addLayer({
             id: 'candidates-fill',
             type: 'fill',
@@ -365,12 +567,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 2, '#fbbf24',
                 1, '#06b6d4',
                 4, '#f97316',
-                '#a855f7'
+                '#38bdf8'
               ],
-              'fill-opacity': 0.55
+              'fill-opacity': 0.26
             }
           });
 
+          // Luminous rounded neon stroke
           map.addLayer({
             id: 'candidates-line',
             type: 'line',
@@ -387,7 +590,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                 1, '#67e8f9',
                 '#ffffff'
               ],
-              'line-width': 1.8,
+              'line-width': 2.0,
               'line-opacity': 0.95
             }
           });
@@ -397,11 +600,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       }
     }
 
-    // Ensure labels stay on top
+    // Ensure labels and markers stay on top
     try {
-      if (map.getLayer('basemap-labels')) {
-        map.moveLayer('basemap-labels');
-      }
+      if (map.getLayer('basemap-labels')) map.moveLayer('basemap-labels');
+      if (map.getLayer('swath-footprint-line')) map.moveLayer('swath-footprint-line');
+      if (map.getLayer('site-markers-pulse')) map.moveLayer('site-markers-pulse');
+      if (map.getLayer('site-markers-dot')) map.moveLayer('site-markers-dot');
+      if (map.getLayer('site-markers-label')) map.moveLayer('site-markers-label');
     } catch (e) {
       // Ignore
     }
@@ -483,7 +688,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     }
   }, [layers]);
 
-  // 7. Update Opacities & Swipe
+  // 7. Update Opacities & Mode (Zero ghosting blur in single-image modes)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapLoadedRef.current) return;
@@ -491,19 +696,45 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     const baseOp = radarOpacity / 100;
     const swipeRatio = localSwipe / 100;
 
+    const preOp = radarMode === 'pre'
+      ? baseOp
+      : radarMode === 'compare'
+        ? baseOp * (1 - swipeRatio)
+        : 0;
+
+    const postOp = radarMode === 'post'
+      ? baseOp
+      : radarMode === 'compare'
+        ? baseOp * swipeRatio
+        : 0;
+
     try {
       if (map.getLayer('pre-sar-layer')) {
-        map.setPaintProperty('pre-sar-layer', 'raster-opacity', baseOp * (1 - swipeRatio));
+        map.setPaintProperty('pre-sar-layer', 'raster-opacity', preOp);
       }
       if (map.getLayer('post-sar-layer')) {
-        map.setPaintProperty('post-sar-layer', 'raster-opacity', baseOp * swipeRatio);
+        map.setPaintProperty('post-sar-layer', 'raster-opacity', postOp);
       }
     } catch (e) {
       // Ignore
     }
-  }, [radarOpacity, localSwipe]);
+  }, [radarOpacity, localSwipe, radarMode]);
 
-  // 8. Basemap & Tilt Toggles
+  // 8. Staging Sites Toggle
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapLoadedRef.current) return;
+    try {
+      const vis = showSites ? 'visible' : 'none';
+      if (map.getLayer('site-markers-pulse')) map.setLayoutProperty('site-markers-pulse', 'visibility', vis);
+      if (map.getLayer('site-markers-dot')) map.setLayoutProperty('site-markers-dot', 'visibility', vis);
+      if (map.getLayer('site-markers-label')) map.setLayoutProperty('site-markers-label', 'visibility', vis);
+    } catch (e) {
+      // Ignore
+    }
+  }, [showSites]);
+
+  // 9. Basemap & Tilt Toggles
   const handleBasemapChange = (type: 'satellite' | 'dark') => {
     const map = mapRef.current;
     if (!map) return;
@@ -553,7 +784,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
 
-      {/* Floating On-Map Toolbar */}
+      {/* Floating On-Map Toolbar (Felt & GIS Inspired) */}
       <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-700/80 shadow-2xl font-mono text-xs">
         {/* Basemap Perspective Buttons */}
         <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
@@ -579,6 +810,43 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           </button>
         </div>
 
+        {/* High-Resolution Radar Mode (Zero-ghosting clarity) */}
+        <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+          <button
+            onClick={() => setRadarMode('post')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
+              radarMode === 'post'
+                ? 'bg-amber-400 text-slate-950 shadow-sm'
+                : 'text-slate-300 hover:text-white'
+            }`}
+            title="View crisp Peak Flood SAR imagery (100% clarity)"
+          >
+            🌊 Peak Event SAR
+          </button>
+          <button
+            onClick={() => setRadarMode('pre')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
+              radarMode === 'pre'
+                ? 'bg-cyan-400 text-slate-950 shadow-sm'
+                : 'text-slate-300 hover:text-white'
+            }`}
+            title="View crisp Pre-Event Baseline SAR"
+          >
+            ⏮️ Baseline SAR
+          </button>
+          <button
+            onClick={() => setRadarMode('compare')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
+              radarMode === 'compare'
+                ? 'bg-purple-500 text-white shadow-sm'
+                : 'text-slate-300 hover:text-white'
+            }`}
+            title="Synchronized Before vs Peak swipe comparison"
+          >
+            🔀 Swipe Compare
+          </button>
+        </div>
+
         {/* 3D Tilt Toggle */}
         <button
           onClick={toggleTilt}
@@ -592,52 +860,54 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           <span>3D Tilt (52°)</span>
         </button>
 
-        {/* Place Names & Labels Toggle */}
+        {/* Staging Sites Toggle (Felt Style) */}
         <button
-          onClick={toggleLabels}
+          onClick={() => setShowSites(!showSites)}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] transition ${
-            showLabels
+            showSites
               ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
               : 'bg-slate-800 text-slate-400 border-slate-700'
           }`}
         >
           <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-          <span>City / River Labels</span>
+          <span>Staging Sites</span>
         </button>
 
-        {/* Radar Backdrop Opacity Slider */}
+        {/* Radar Backdrop Opacity Slider (Felt style percentage) */}
         <div className="flex items-center gap-2 pl-2 border-l border-slate-700 text-[11px] text-slate-300">
-          <span>Radar:</span>
+          <span>Raster:</span>
           <input
             type="range"
             min="0"
             max="100"
             value={radarOpacity}
             onChange={(e) => setRadarOpacity(Number(e.target.value))}
-            className="w-20 accent-cyan-400 cursor-pointer"
+            className="w-20 accent-amber-400 cursor-pointer"
             title={`Radar Opacity: ${radarOpacity}%`}
           />
-          <span className="text-[10px] text-cyan-400 w-7">{radarOpacity}%</span>
+          <span className="text-[10px] text-amber-400 w-8 font-bold">{radarOpacity}%</span>
         </div>
       </div>
 
-      {/* Floating Radar Swipe Slider (Pre vs Post SAR) */}
-      <div className="absolute top-16 left-4 z-20 flex items-center gap-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-700/80 shadow-2xl font-mono text-xs">
-        <span className="text-cyan-400 text-[11px] font-semibold">Pre-Event Baseline</span>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={localSwipe}
-          onChange={(e) => {
-            const val = Number(e.target.value);
-            setLocalSwipe(val);
-            if (onSliderChange) onSliderChange(val);
-          }}
-          className="w-44 accent-amber-400 cursor-ew-resize"
-        />
-        <span className="text-amber-400 text-[11px] font-semibold">Peak Flood Event</span>
-      </div>
+      {/* Floating Radar Swipe Slider (Only in compare mode) */}
+      {radarMode === 'compare' && (
+        <div className="absolute top-16 left-4 z-20 flex items-center gap-3 bg-slate-900/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-purple-500/80 shadow-2xl font-mono text-xs animate-fade-in">
+          <span className="text-cyan-400 text-[11px] font-semibold">Pre-Event Baseline</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={localSwipe}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setLocalSwipe(val);
+              if (onSliderChange) onSliderChange(val);
+            }}
+            className="w-44 accent-purple-400 cursor-ew-resize"
+          />
+          <span className="text-amber-400 text-[11px] font-semibold">Peak Flood Event</span>
+        </div>
+      )}
 
       {/* Floating Scientific Legend */}
       <div className="absolute bottom-6 left-6 z-20 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 p-3.5 rounded-xl shadow-2xl text-xs font-mono max-w-xs">
@@ -663,8 +933,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             <span className="w-3.5 h-3.5 rounded bg-orange-500 border border-orange-400 shadow-sm shrink-0"></span>
             <span className="text-slate-300">PARALLAX Candidate Open Water</span>
           </div>
-          <div className="flex items-center space-x-2 pt-1 border-t border-slate-800/80 text-[10px] text-slate-400">
-            <span>💡 Click any polygon to inspect radar evidence</span>
+          <div className="flex items-center space-x-2.5 pt-1 border-t border-slate-800">
+            <span className="w-3.5 h-1 border-b-2 border-rose-500 border-dashed shrink-0"></span>
+            <span className="text-rose-400 text-[10px]">Sentinel-1 Burst Swath Perimeter</span>
+          </div>
+          <div className="flex items-center space-x-2.5">
+            <span className="w-3 h-3 rounded-full bg-emerald-400 border border-white shrink-0"></span>
+            <span className="text-emerald-300 text-[10px]">Staging Inspection Sites</span>
           </div>
         </div>
       </div>

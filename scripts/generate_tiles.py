@@ -37,19 +37,26 @@ def tile_xy_for_lonlat(lon: float, lat: float, z: int) -> Tuple[int, int]:
     return (x, y)
 
 
-def colormap_sar_db(arr: np.ndarray, vmin: float = -25.0, vmax: float = 0.0) -> Image.Image:
-    """Renders grayscale SAR backscatter with alpha for nodata."""
+def colormap_sar_db(arr: np.ndarray, vmin: float = -22.0, vmax: float = -2.5) -> Image.Image:
+    """
+    Renders high-contrast, photographic SAR backscatter (Umbra/Sentinel-1 style)
+    with deep specular attenuation black and crisp double-bounce highlights.
+    """
     rgba = np.zeros((TILE_SIZE, TILE_SIZE, 4), dtype=np.uint8)
     valid = np.isfinite(arr) & (arr > -90.0)
 
     clipped = np.clip(arr, vmin, vmax)
     clean = np.nan_to_num(clipped, nan=vmin)
-    norm = ((clean - vmin) / (vmax - vmin) * 255.0).astype(np.uint8)
+    norm = (clean - vmin) / (vmax - vmin)
 
-    rgba[..., 0] = norm
-    rgba[..., 1] = norm
-    rgba[..., 2] = norm
-    rgba[..., 3] = np.where(valid, 240, 0).astype(np.uint8)
+    # Gamma 0.85 curves texture out of shadows for crisp terrain & canopy detail
+    enhanced = np.power(norm, 0.85) * 255.0
+    val_uint8 = np.clip(enhanced, 0, 255).astype(np.uint8)
+
+    rgba[..., 0] = val_uint8
+    rgba[..., 1] = val_uint8
+    rgba[..., 2] = val_uint8
+    rgba[..., 3] = np.where(valid, 255, 0).astype(np.uint8)
     return Image.fromarray(rgba, "RGBA")
 
 
@@ -270,7 +277,7 @@ def generate_all_case_tiles(
             output_dir=out_layer_dir,
             layer_name=layer["name"],
             colormap_type=layer["colormap"],
-            zooms=[11, 12, 13, 14]
+            zooms=[11, 12, 13, 14, 15]
         )
 
 
