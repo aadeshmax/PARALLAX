@@ -72,9 +72,9 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
       {/* Left: Brand & Search Pill */}
       <div className="flex items-center gap-2 lg:gap-3 pointer-events-auto shrink min-w-0">
         {/* Brand Logo & Wordmark */}
-        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-midnight-panel/90 backdrop-blur-md border border-midnight-border shadow-2xl shrink-0">
+        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl glass-pill shadow-pill shrink-0">
           {/* Custom Cyclone/Vortex Logo Icon */}
-          <div className="w-8 h-8 rounded-lg bg-midnight-accent/20 border border-midnight-accent/50 flex items-center justify-center text-midnight-accent shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-midnight-accent/20 border border-midnight-accent/60 flex items-center justify-center text-midnight-accent shrink-0 shadow-glow-accent">
             <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current stroke-2">
               <path strokeLinecap="round" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" />
               <path strokeLinecap="round" d="M12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6" />
@@ -93,7 +93,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
 
         {/* Location Search Bar */}
         <div className="relative shrink min-w-0">
-          <div className="flex items-center gap-2 px-3 py-2 w-48 sm:w-60 lg:w-72 rounded-xl bg-midnight-panel/90 backdrop-blur-md border border-midnight-border text-xs shadow-2xl text-midnight-secondary focus-within:border-midnight-accent transition">
+          <div className="flex items-center gap-2 px-3.5 py-2 w-48 sm:w-60 lg:w-72 rounded-xl glass-pill shadow-pill text-xs text-midnight-secondary focus-within:border-midnight-accent focus-within:ring-1 focus-within:ring-midnight-accent/50 transition">
             <Search className="w-4 h-4 text-midnight-secondary shrink-0" />
             <input
               type="text"
@@ -110,7 +110,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
 
           {/* Search Suggestions Dropdown */}
           {showSearchSuggestions && searchQuery.length > 0 && (
-            <div className="absolute top-full mt-1.5 left-0 w-full bg-midnight-panel/95 backdrop-blur-md border border-midnight-border rounded-xl shadow-2xl py-1 z-40 text-xs">
+            <div className="absolute top-full mt-1.5 left-0 w-full glass-panel rounded-xl shadow-glass py-1 z-40 text-xs">
               {filteredLocations.length > 0 ? (
                 filteredLocations.map((loc, idx) => (
                   <button
@@ -144,12 +144,12 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
         </div>
 
         {/* Quick Tools Buttons */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-midnight-panel/90 backdrop-blur-md border border-midnight-border shadow-2xl">
+        <div className="flex items-center gap-1 p-1 rounded-xl glass-pill shadow-pill">
           <button
             onClick={() => onToggleTool(activeTool === 'area' ? null : 'area')}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTool === 'area'
-                ? 'bg-midnight-accent text-white shadow'
+                ? 'bg-midnight-accent text-white shadow-glow-accent'
                 : 'text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated'
             }`}
             title="Area of Interest (AOI) selection"
@@ -162,7 +162,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
             onClick={() => onToggleTool(activeTool === 'measure' ? null : 'measure')}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTool === 'measure'
-                ? 'bg-midnight-accent text-white shadow'
+                ? 'bg-midnight-accent text-white shadow-glow-accent'
                 : 'text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated'
             }`}
             title="Distance & Area Measurement tool"
@@ -175,7 +175,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
             onClick={() => onToggleTool(activeTool === 'layers' ? null : 'layers')}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTool === 'layers'
-                ? 'bg-midnight-accent text-white shadow'
+                ? 'bg-midnight-accent text-white shadow-glow-accent'
                 : 'text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated'
             }`}
             title="Toggle Layer Explorer"
@@ -188,7 +188,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
             onClick={() => onToggleTool(activeTool === 'compare' ? null : 'compare')}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
               activeTool === 'compare'
-                ? 'bg-midnight-accent text-white shadow'
+                ? 'bg-midnight-accent text-white shadow-glow-accent'
                 : 'text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated'
             }`}
             title="Toggle Comparison Mode"
@@ -205,7 +205,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
         <div className="relative shrink-0">
           <button
             onClick={() => setShowCaseDropdown(!showCaseDropdown)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-midnight-panel/90 backdrop-blur-md border border-midnight-border text-xs text-midnight-primary hover:border-midnight-accent transition shadow-2xl"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl glass-pill shadow-pill text-xs text-midnight-primary hover:border-midnight-accent transition"
           >
             <Calendar className="w-3.5 h-3.5 text-midnight-accent" />
             <div className="flex flex-col text-left">
@@ -223,7 +223,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
 
           {/* Case Dropdown */}
           {showCaseDropdown && (
-            <div className="absolute right-0 top-full mt-1.5 w-72 bg-midnight-panel/95 backdrop-blur-md border border-midnight-border rounded-xl shadow-2xl py-1.5 z-40 text-xs">
+            <div className="absolute right-0 top-full mt-1.5 w-72 glass-panel rounded-xl shadow-glass py-1.5 z-40 text-xs">
               <div className="px-3 py-1.5 text-[10px] font-semibold text-midnight-secondary uppercase tracking-wider border-b border-midnight-border/60">
                 Satellite Study Cases
               </div>
@@ -249,10 +249,10 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
         </div>
 
         {/* System Online / Datasets Status Badge */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-xl bg-midnight-panel/90 backdrop-blur-md border border-midnight-border text-xs shadow-2xl shrink-0">
+        <div className="hidden lg:flex items-center gap-2.5 px-3.5 py-2 rounded-xl glass-pill shadow-pill text-xs shrink-0">
           <div className="relative flex items-center justify-center">
-            <span className="w-2 h-2 rounded-full bg-midnight-success animate-ping absolute" />
-            <span className="w-2 h-2 rounded-full bg-midnight-success relative" />
+            <span className="w-2 h-2 rounded-full bg-midnight-success animate-ping absolute opacity-75" />
+            <span className="w-2 h-2 rounded-full bg-midnight-success relative shadow-glow-accent" />
           </div>
           <div className="flex flex-col">
             <span className="font-medium text-midnight-primary text-xs leading-tight">
@@ -269,7 +269,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
         {/* Export Button */}
         <button
           onClick={onOpenExport}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-midnight-panel/90 backdrop-blur-md border border-midnight-border text-xs font-medium text-midnight-primary hover:bg-midnight-elevated hover:border-midnight-accent transition shadow-2xl shrink-0"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl glass-pill shadow-pill text-xs font-medium text-midnight-primary hover:bg-midnight-elevated hover:border-midnight-accent transition shrink-0"
           title="Export GeoJSON, CSV, GeoTIFF or Report"
         >
           <Download className="w-3.5 h-3.5 text-midnight-secondary" />
@@ -280,7 +280,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
         <button
           onClick={onRunAnalysis}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-midnight-accent hover:bg-blue-600 text-white font-semibold text-xs transition shadow-lg shadow-midnight-accent/25 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-midnight-accent hover:bg-blue-600 text-white font-semibold text-xs transition shadow-glow-accent disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
         >
           {loading ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />

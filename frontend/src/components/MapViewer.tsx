@@ -809,14 +809,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       {comparisonMode === 'swipe' && (
         <>
           {/* Top Pill Labels */}
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl pointer-events-none">
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-4 py-1.5 rounded-full glass-pill shadow-pill pointer-events-none">
             <span className="text-xs font-semibold text-midnight-opera px-2 py-0.5 rounded flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-midnight-opera" />
+              <span className="w-1.5 h-1.5 rounded-full bg-midnight-opera shadow-glow-cyan" />
               Standard Water Map
             </span>
             <span className="text-midnight-secondary text-xs">|</span>
             <span className="text-xs font-semibold text-midnight-candidate px-2 py-0.5 rounded flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-midnight-candidate" />
+              <span className="w-1.5 h-1.5 rounded-full bg-midnight-candidate shadow-glow-amber" />
               Hidden Floodwater Uncovered
             </span>
           </div>
@@ -857,7 +857,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         <div className="relative">
           <button
             onClick={() => setShowBasemapMenu(!showBasemapMenu)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border text-xs text-midnight-primary hover:border-midnight-accent shadow-2xl transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl glass-pill shadow-pill text-xs text-midnight-primary hover:border-midnight-accent transition"
             title="Switch Basemap Style"
           >
             <Globe className="w-3.5 h-3.5 text-midnight-accent" />
@@ -866,7 +866,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           </button>
 
           {showBasemapMenu && (
-            <div className="absolute right-0 top-full mt-1 w-28 bg-midnight-panel/95 backdrop-blur-md border border-midnight-border rounded-xl shadow-2xl py-1 z-30 text-xs">
+            <div className="absolute right-0 top-full mt-1 w-28 glass-panel shadow-glass rounded-xl py-1 z-30 text-xs">
               {(['satellite', 'dark'] as const).map((type) => (
                 <button
                   key={type}
@@ -886,7 +886,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
 
         {/* Navigation Controls Pill */}
-        <div className="flex flex-col rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden divide-y divide-midnight-border">
+        <div className="flex flex-col rounded-xl glass-pill shadow-pill overflow-hidden divide-y divide-midnight-border/70">
           <button
             onClick={() => mapRef.current?.zoomIn()}
             className="p-2 text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated transition"

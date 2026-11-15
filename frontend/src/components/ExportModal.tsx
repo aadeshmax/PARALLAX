@@ -69,10 +69,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 pointer-events-auto">
-      <div className="w-full max-w-lg rounded-2xl bg-midnight-panel border border-midnight-border shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 pointer-events-auto">
+      <div className="w-full max-w-lg rounded-2xl glass-panel shadow-glass overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-midnight-border bg-midnight-elevated/40">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-midnight-border/70 bg-midnight-elevated/30">
           <div className="flex items-center gap-2.5">
             <Download className="w-5 h-5 text-midnight-accent" />
             <h3 className="font-bold text-sm text-midnight-primary">

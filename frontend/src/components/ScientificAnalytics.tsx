@@ -53,7 +53,7 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
     <>
       {/* Docked Analytics Section beside Acquisition Timeline */}
       <div className="flex items-stretch shrink-0">
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl h-full">
+        <div className="flex items-center gap-3 p-3 rounded-2xl glass-panel shadow-glass h-full">
           {/* Card 1: Water Extent / Change Partition Bar Chart */}
           <div className="flex flex-col w-32 pr-3 border-r border-midnight-border/50 justify-between h-full">
             <div className="flex flex-col">

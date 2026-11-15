@@ -40,9 +40,9 @@ export const AcquisitionTimeline: React.FC<AcquisitionTimelineProps> = ({
   return (
     <div className="flex flex-col shrink-0">
       {/* Collapsible Bar Container */}
-      <div className="flex flex-col h-full rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden transition-all duration-300">
+      <div className="flex flex-col h-full rounded-2xl glass-panel shadow-glass overflow-hidden transition-all duration-300">
         {/* Header Bar */}
-        <div className="flex items-center justify-between px-3.5 py-2 border-b border-midnight-border/50 bg-midnight-elevated/40 text-xs">
+        <div className="flex items-center justify-between px-3.5 py-2 border-b border-midnight-border/70 bg-midnight-elevated/30 text-xs">
           <button
             onClick={onToggleOpen}
             className="flex items-center gap-2 text-midnight-primary hover:text-midnight-accent transition font-semibold"

@@ -101,9 +101,9 @@ export const LayerExplorer: React.FC<LayerExplorerProps> = ({
   };
 
   return (
-    <div className="absolute top-16 left-3 z-20 w-80 max-h-[calc(100vh-14rem)] flex flex-col rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-auto transition-all duration-300">
+    <div className="absolute top-16 left-3 z-20 w-80 max-h-[calc(100vh-14rem)] flex flex-col rounded-2xl glass-panel shadow-glass overflow-hidden pointer-events-auto transition-all duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-midnight-border bg-midnight-elevated/40">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-midnight-border/70 bg-midnight-elevated/30">
         <div className="flex items-center gap-2">
           <LayersIcon className="w-4 h-4 text-midnight-accent" />
           <h2 className="font-bold text-xs text-midnight-primary tracking-wide">
