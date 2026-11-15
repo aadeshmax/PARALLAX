@@ -8,7 +8,7 @@
 
 | Case ID | Region & Event | Sensor & Frequency | Acquisition Interval | Valid AOI | Key Finding |
 | :--- | :--- | :--- | :--- | :---: | :--- |
-| **`mumbai_nisar_2026`** | **Mumbai & Thane Creek**<br>Monsoon Surface Dynamics | **NISAR L-Band**<br>(1.2575 GHz, $\lambda = 24\text{ cm}$) | Jul 21 – Aug 02, 2026<br>(12-day orbital repeat) | **2,753.30 km²** | **571.13 km² Backscatter Enhancement Zones — Potential Inundation Indicators** (+2.5 dB) under mangrove canopy; 2.85 km² attenuation. |
+| **`mumbai_nisar_2026`** | **Mumbai & Thane Creek**<br>Monsoon Surface Dynamics | **NISAR L-Band**<br>(1.2575 GHz, $\lambda = 23.84\text{ cm}$) | Jun 22 – Jul 04, 2026<br>(12-day orbital repeat) | **2,330.44 km²** | **571.13 km² Backscatter Enhancement Zones — Potential Inundation Indicators** (+2.5 dB) under mangrove canopy; 2.85 km² attenuation. |
 | **`chennai_live_case`** | **Chennai & Pallikaranai**<br>Cyclone Fengal Floods | **Sentinel-1 C-Band**<br>(5.405 GHz, $\lambda = 5.6\text{ cm}$) | Nov 20 – Dec 02, 2024<br>(12-day orbital repeat) | **412.80 km²** | **18.4 km² candidate floodwater** (+43.0% expansion over 42.8 km² OPERA baseline). |
 | **`real_event_rio_grande_do_sul`** | **Rio Grande do Sul**<br>Historic 2024 Catastrophe | **Sentinel-1 C-Band**<br>(OPERA L2 RTC + L3 DSWx) | Apr 26 – May 08, 2024 | **1,240.50 km²** | **+4.8 dB double-bounce** across Jacuí Delta gallery forests unmapped by standard DSWx. |
 | **`demo_flood_case`** | **NASA Demonstration**<br>Brittany Basin, France | **Sentinel-1 C-Band**<br>(OPERA L2 RTC-S1) | Jan 10 – Jan 22, 2024 | **350.20 km²** | Baseline verification of dual-pol cross-ratio false-positive suppression. |
@@ -18,8 +18,8 @@
 ## 2. In-Depth Analysis: Mumbai & Thane Creek (NISAR L-Band)
 
 ### Spatial & Radiometric Statistics:
-- **Analyzed AOI:** $2,753.30\text{ km²}$ (UTM Zone 43N / WGS 84, `EPSG:32643`)
-- **Total Valid Observed Pixels:** $27,533,000\text{ pixels}$ ($10\text{m} \times 10\text{m}$ resolution)
+- **Analyzed AOI:** $2,330.44\text{ km²}$ (UTM Zone 43N / WGS 84, `EPSG:32643`)
+- **Total Valid Observed Pixels:** $23,304,400\text{ pixels}$ ($10\text{m} \times 10\text{m}$ resolution)
 - **Mean Pre-Event Baseline $\sigma^0$:** $-11.42\text{ dB}$
 - **Mean Post-Event Target $\sigma^0$:** $-9.87\text{ dB}$
 - **Mean Temporal Differential $\Delta\sigma^0$:** $+1.55\text{ dB}$ (overall landscape wetting trend)

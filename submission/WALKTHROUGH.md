@@ -42,13 +42,13 @@ Open your browser to:
 
 1. **Select the Case:**
    - In the top header bar, click on the **Event Date** dropdown button.
-   - Select **`Mumbai & Thane Creek (NISAR L-Band 2026)`** (Acquisition: Jul 21 – Aug 02, 2026).
+   - Select **`Mumbai & Thane Creek (NISAR L-Band 2026)`** (Acquisition: Jun 22 – Jul 04, 2026).
    - The map smoothly flies over the Mumbai Metropolitan Region and Thane Creek.
 
 2. **Inspect the Analysis Inspector (Right Sidebar):**
    - **Backscatter Enhancement Zones — Potential Inundation Indicators:** Observe **`571.13 km²`** (+2.5 dB enhancement).
    - **Potential Surface Water Change:** Observe **`2.85 km²`** (-3.0 dB attenuation).
-   - **Sensor Parameter:** Note `NISAR L-Band (24cm) | Pass 172 | Track 056`.
+   - **Sensor Parameter:** Note `NISAR L-Band (23.84cm) | Track 113 | Frame 011`.
    - **Physical Evidence:** Note the explicit classification of sub-canopy double-bounce corner reflection vs specular surface water.
 
 3. **Toggle Dual-Mode Radar Visualization:**
