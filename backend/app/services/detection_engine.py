@@ -7,6 +7,9 @@ from scipy import ndimage
 import rasterio
 from rasterio.features import shapes
 from shapely.geometry import shape, mapping
+from shapely.ops import transform as shapely_transform
+import pyproj
+from pyproj import Transformer
 from app.config import settings
 from app.services.geospatial import geospatial_processor
 
@@ -367,11 +370,40 @@ class DetectionEngine:
         if not np.any(candidate_mask):
             return []
 
+        src_crs = profile.get("crs")
+        transformer = None
+        if src_crs:
+            try:
+                dst_crs = pyproj.CRS("EPSG:4326")
+                if pyproj.CRS(src_crs) != dst_crs:
+                    transformer = Transformer.from_crs(src_crs, dst_crs, always_xy=True)
+            except Exception as e:
+                logger.warning(f"Could not build CRS transformer from {src_crs} to EPSG:4326: {e}")
+
         features = []
         for geom_dict, val in shapes(class_arr.astype(np.int32), mask=candidate_mask, transform=profile["transform"]):
             poly = shape(geom_dict)
-            if poly.area < (pixel_area_km2 * 1e6 * 3): # Skip tiny speckles
+            area_m2 = poly.area
+            if area_m2 < (pixel_area_km2 * 1e6 * 4): # Filter isolated 1-2 pixel speckle noise
                 continue
+
+            # Sub-pixel topological contour smoothing (eliminates 30m grid stair-stepping)
+            try:
+                poly_smoothed = poly.buffer(8.0, quad_segs=4).buffer(-8.0, quad_segs=4).simplify(6.0, preserve_topology=True)
+                if poly_smoothed.is_empty or not poly_smoothed.is_valid:
+                    poly_smoothed = poly.simplify(10.0, preserve_topology=True)
+                if poly_smoothed.is_empty or not poly_smoothed.is_valid:
+                    poly_smoothed = poly
+            except Exception:
+                poly_smoothed = poly
+
+            if transformer:
+                try:
+                    poly_wgs84 = shapely_transform(transformer.transform, poly_smoothed)
+                except Exception:
+                    poly_wgs84 = poly_smoothed
+            else:
+                poly_wgs84 = poly_smoothed
 
             if val == 1:
                 cls_name = "Confirmed Open Water (Cross-Product Agreement)"
@@ -388,14 +420,14 @@ class DetectionEngine:
 
             features.append({
                 "type": "Feature",
-                "geometry": mapping(poly),
+                "geometry": mapping(poly_wgs84),
                 "properties": {
                     "class_id": int(val),
                     "class_name": cls_name,
                     "evidence_tier": "High backscatter amplitude" if val in (1, 2) else "Moderate backscatter amplitude",
                     "detection_mechanism": mechanism,
                     "cross_product_context": context,
-                    "area_ha": round((poly.area / 10000), 2),
+                    "area_ha": round((area_m2 / 10000), 2),
                     "scientific_label": "Candidate Inundation (Unverified ground-truth)"
                 }
             })

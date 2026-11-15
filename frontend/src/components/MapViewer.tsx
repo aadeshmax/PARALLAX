@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import * as maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibreglWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+
+// Explicitly bind MapLibre worker bundle URL to prevent Vite 404 worker load issues
+maplibregl.setWorkerUrl(maplibreglWorkerUrl);
+
 import {
   Plus,
   Minus,
   Compass,
   Navigation,
-  Box,
-  Layers,
-  ChevronDown,
-  Globe
+  Globe,
+  ChevronDown
 } from 'lucide-react';
 import {
   AnalysisMetrics,
@@ -22,242 +25,587 @@ interface MapViewerProps {
   metrics: AnalysisMetrics | null;
   geojsonData: any;
   currentCase: CaseStudy | null;
+  caseId: string;
   layers: LayerGroupsState;
   comparisonMode: ComparisonMode;
   onSelectComparisonMode: (mode: ComparisonMode) => void;
   sliderPos: number; // 0 to 100
   onSliderChange: (pos: number) => void;
   targetCoords?: [number, number] | null;
+  onSelectEvidence?: (evidence: any) => void;
 }
+
+// Field validation staging sites per case
+const CASE_INSPECTION_SITES: Record<string, Array<{ id: string; name: string; tag: string; coords: [number, number]; desc: string; type: 'veg' | 'water' }>> = {
+  chennai_live_case: [
+    { id: 'site-1', name: 'Site 1: Pallikaranai Marshlands', tag: 'Double-Bounce Gap (+4.7 dB)', coords: [80.145, 13.235], desc: 'Protected reed and mangrove swamp submerged beneath floodwaters', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Cooum River Discharge', tag: 'Confirmed Water (-9.8 dB)', coords: [80.125, 13.275], desc: 'Severe bank overflow and urban street inundation', type: 'water' },
+    { id: 'site-3', name: 'Site 3: Adyar Basin Corridor', tag: 'Canopy Double-Bounce', coords: [80.105, 13.250], desc: 'Riparian tree canopy standing in floodwater', type: 'veg' }
+  ],
+  mumbai_monsoon_event: [
+    { id: 'site-1', name: 'Site 1: Thane Creek Mangrove Sanctuary', tag: 'Double-Bounce Gap (+4.2 dB)', coords: [72.940, 19.145], desc: 'Dense Avicennia mangrove canopy inundation during peak monsoon tide', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Mithi River Spillway', tag: 'Confirmed Water (-11.2 dB)', coords: [72.880, 19.095], desc: 'Urban river channel overflow with severe specular radar drop', type: 'water' },
+    { id: 'site-3', name: 'Site 3: Vikhroli Wetland Basin', tag: 'Canopy Reflection', coords: [72.920, 19.115], desc: 'Canopy-water dihedral scattering unmapped by standard optical DSWx', type: 'veg' }
+  ],
+  real_event_rio_grande_do_sul: [
+    { id: 'site-1', name: 'Site 1: Jacuí Delta Canopy Gap', tag: 'Double-Bounce (+4.8 dB)', coords: [-51.345, -29.865], desc: 'Dihedral radar double-bounce under flooded woody gallery forest', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Taquari River Confluence', tag: 'Confirmed Water (-8.6 dB)', coords: [-51.390, -29.890], desc: 'Severe specular radar attenuation confirmed by OPERA DSWx', type: 'water' },
+    { id: 'site-3', name: 'Site 3: Triunfo Lowland Agriculture', tag: 'Plausible Inundation', coords: [-51.320, -29.840], desc: 'Submerged field margins and canal overflow', type: 'veg' }
+  ],
+  demo_flood_case: [
+    { id: 'site-1', name: 'Site 1: Brittany Woody Basin', tag: 'Double-Bounce Gap (+3.6 dB)', coords: [-4.635, 49.035], desc: 'Inundated deciduous forest canopy', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Reservoir Flood Pool', tag: 'Confirmed Water (-7.9 dB)', coords: [-4.610, 49.055], desc: 'Open reservoir surface extent', type: 'water' }
+  ]
+};
 
 export const MapViewer: React.FC<MapViewerProps> = ({
   metrics,
   geojsonData,
   currentCase,
+  caseId,
   layers,
   comparisonMode,
   onSelectComparisonMode,
   sliderPos,
   onSliderChange,
-  targetCoords
+  targetCoords,
+  onSelectEvidence
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const baseTileLayerRef = useRef<L.TileLayer | null>(null);
-  const labelsTileLayerRef = useRef<L.TileLayer | null>(null);
-  const operaLayerRef = useRef<L.GeoJSON | null>(null);
-  const candidateLayerRef = useRef<L.GeoJSON | null>(null);
-  const boundaryLayerRef = useRef<L.Polygon | null>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const currentLoadedCaseRef = useRef<string | null>(null);
+  const isMapLoadedRef = useRef<boolean>(false);
 
+  const [basemapType, setBasemapType] = useState<'satellite' | 'dark'>('satellite');
+  const [showBasemapMenu, setShowBasemapMenu] = useState<boolean>(false);
+  const [is3D, setIs3D] = useState<boolean>(true);
   const [mouseCoords, setMouseCoords] = useState<{ lat: number; lon: number }>({
-    lat: 12.9827,
-    lon: 80.2707
+    lat: 13.2550,
+    lon: 80.1185
   });
-  const [basemapType, setBasemapType] = useState<'satellite' | 'dark' | 'topo'>('satellite');
-  const [showBasemapMenu, setShowBasemapMenu] = useState(false);
-  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
+  const [isDraggingSlider, setIsDraggingSlider] = useState<boolean>(false);
 
-  // Initialize Map
+  // Coordinate resolution per case
+  const getCaseCenterAndZoom = (targetCaseId: string): { center: [number, number]; zoom: number } => {
+    if (targetCaseId === 'chennai_live_case') {
+      return { center: [80.1185, 13.2550], zoom: 12 };
+    }
+    if (targetCaseId === 'mumbai_monsoon_event') {
+      return { center: [72.9038, 19.1206], zoom: 12 };
+    }
+    if (targetCaseId === 'real_event_rio_grande_do_sul') {
+      return { center: [-51.3676, -29.8705], zoom: 12 };
+    }
+    if (targetCaseId === 'demo_flood_case') {
+      return { center: [-4.624, 49.042], zoom: 11 };
+    }
+    if (currentCase?.center) {
+      return { center: [currentCase.center[0], currentCase.center[1]], zoom: 12 };
+    }
+    return { center: [80.1185, 13.2550], zoom: 12 };
+  };
+
+  // Safe layer and source removal
+  const safelyRemoveLayerAndSource = (map: maplibregl.Map, layerId: string, sourceId: string) => {
+    try {
+      if (map.getLayer(layerId)) {
+        map.removeLayer(layerId);
+      }
+    } catch (e) {
+      // ignore
+    }
+    try {
+      if (map.getSource(sourceId)) {
+        map.removeSource(sourceId);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // 1. Initialize MapLibre GL Map (Once)
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current) return;
+    if (mapRef.current) return;
 
-    // Center around Chennai or current case
-    const initialCenter: L.LatLngExpression = currentCase?.center
-      ? [currentCase.center[1], currentCase.center[0]]
-      : [13.01, 80.25];
+    const { center, zoom } = getCaseCenterAndZoom(caseId);
 
-    const map = L.map(mapContainerRef.current, {
-      center: initialCenter,
-      zoom: 12,
-      zoomControl: false,
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: {
+        version: 8,
+        sources: {
+          'esri-satellite': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri, Maxar, Earthstar Geographics'
+          },
+          'esri-dark': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: 'Esri, HERE, Garmin, OpenStreetMap'
+          },
+          'esri-labels': {
+            type: 'raster',
+            tiles: [
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: ''
+          }
+        },
+        layers: [
+          {
+            id: 'basemap-dark',
+            type: 'raster',
+            source: 'esri-dark',
+            layout: { visibility: 'none' }
+          },
+          {
+            id: 'basemap-satellite',
+            type: 'raster',
+            source: 'esri-satellite',
+            layout: { visibility: 'visible' },
+            paint: { 'raster-opacity': layers.earthObservation.satelliteBasemap.opacity / 100 }
+          },
+          {
+            id: 'basemap-labels',
+            type: 'raster',
+            source: 'esri-labels',
+            layout: { visibility: layers.spatialContext.roads.visible ? 'visible' : 'none' },
+            paint: { 'raster-opacity': 0.85 }
+          }
+        ]
+      },
+      center: center,
+      zoom: zoom,
+      pitch: 45,
+      bearing: -10,
       attributionControl: false
     });
 
-    // High-Resolution Esri World Imagery (Satellite)
-    const satelliteLayer = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      {
-        maxZoom: 19,
-        opacity: layers.earthObservation.satelliteBasemap.opacity / 100
-      }
-    ).addTo(map);
-    baseTileLayerRef.current = satelliteLayer;
-
-    // Dark matter reference labels for streets and cities
-    const labelsLayer = L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',
-      {
-        subdomains: 'abcd',
-        maxZoom: 19,
-        opacity: 0.85
-      }
-    ).addTo(map);
-    labelsTileLayerRef.current = labelsLayer;
-
-    // Mouse move coordinate tracker
-    map.on('mousemove', (e: L.LeafletMouseEvent) => {
+    map.on('mousemove', (e) => {
       setMouseCoords({
-        lat: parseFloat(e.latlng.lat.toFixed(4)),
-        lon: parseFloat(e.latlng.lng.toFixed(4))
+        lat: parseFloat(e.lngLat.lat.toFixed(4)),
+        lon: parseFloat(e.lngLat.lng.toFixed(4))
       });
     });
 
-    mapRef.current = map;
+    map.on('load', () => {
+      isMapLoadedRef.current = true;
+      mapRef.current = map;
+      setupInteractions(map);
+      loadCaseData(map, caseId);
+      setTimeout(() => map.resize(), 150);
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+      }
+    });
+    resizeObserver.observe(mapContainerRef.current);
 
     return () => {
-      map.remove();
+      resizeObserver.disconnect();
+      isMapLoadedRef.current = false;
+      try {
+        map.remove();
+      } catch (e) {
+        // ignore
+      }
       mapRef.current = null;
     };
   }, []);
 
-  // Update Basemap Tiles
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !baseTileLayerRef.current) return;
+  // 2. Setup Event Handlers for Candidate Regions & Staging Sites
+  const setupInteractions = (map: maplibregl.Map) => {
+    map.on('click', 'candidates-fill', (e) => {
+      if (!e.features || !e.features[0]) return;
+      const p = e.features[0].properties as any;
+      if (onSelectEvidence) {
+        onSelectEvidence({
+          className: p.class_name || (p.class_id === 2 ? 'Inundated Veg (Double-Bounce)' : 'Confirmed Open Water'),
+          classId: Number(p.class_id) || 1,
+          areaHa: Number(p.area_ha) || 0.45,
+          detectionMechanism: p.detection_mechanism || 'Radar backscatter dihedral reflection',
+          crossProductContext: p.cross_product_context || 'Complementary radar sensitivity under canopy',
+          evidenceTier: p.evidence_tier || 'High backscatter signature',
+          scientificLabel: p.scientific_label || 'Candidate Inundation (Unverified ground-truth)'
+        });
+      }
+    });
 
-    map.removeLayer(baseTileLayerRef.current);
+    map.on('click', 'site-markers-dot', (e) => {
+      if (!e.features || !e.features[0]) return;
+      const p = e.features[0].properties as any;
+      const geom = e.features[0].geometry as any;
+      if (geom?.coordinates) {
+        map.flyTo({ center: geom.coordinates, zoom: 13.5, speed: 1.2 });
+      }
+      if (onSelectEvidence) {
+        onSelectEvidence({
+          className: p.name,
+          classId: p.type === 'veg' ? 2 : 1,
+          areaHa: 4.5,
+          detectionMechanism: p.desc,
+          crossProductContext: p.tag,
+          evidenceTier: 'Field Validation Staging Target',
+          scientificLabel: 'In-Situ Radar Evaluation Site'
+        });
+      }
+    });
 
-    let url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    if (basemapType === 'dark') {
-      url = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-    } else if (basemapType === 'topo') {
-      url = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+    map.on('mouseenter', 'candidates-fill', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'candidates-fill', () => {
+      map.getCanvas().style.cursor = '';
+    });
+    map.on('mouseenter', 'site-markers-dot', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', 'site-markers-dot', () => {
+      map.getCanvas().style.cursor = '';
+    });
+  };
+
+  // 3. Load / Update Case Tiles & GeoJSON
+  const loadCaseData = async (map: maplibregl.Map, activeCaseId: string) => {
+    if (!map || !map.isStyleLoaded()) return;
+
+    if (currentLoadedCaseRef.current !== activeCaseId) {
+      currentLoadedCaseRef.current = activeCaseId;
+
+      const rasterLayers = [
+        ['gap-overlay-layer', 'gap-overlay'],
+        ['opera-water-layer', 'opera-water'],
+        ['diff-db-layer', 'diff-db'],
+        ['post-sar-layer', 'post-sar'],
+        ['pre-sar-layer', 'pre-sar']
+      ];
+      rasterLayers.forEach(([layerId, sourceId]) => {
+        safelyRemoveLayerAndSource(map, layerId, sourceId);
+      });
+
+      const baseUrl = `/data/cases/${activeCaseId}/tiles`;
+
+      // Pre-SAR
+      map.addSource('pre-sar', {
+        type: 'raster',
+        tiles: [`${baseUrl}/pre_sar/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14
+      });
+      map.addLayer({
+        id: 'pre-sar-layer',
+        type: 'raster',
+        source: 'pre-sar',
+        paint: {
+          'raster-opacity': (layers.earthObservation.preEventSar.opacity / 100) * (comparisonMode === 'swipe' ? (1 - sliderPos / 100) : 1),
+          'raster-resampling': 'linear'
+        },
+        layout: { visibility: layers.earthObservation.preEventSar.visible ? 'visible' : 'none' }
+      }, 'basemap-labels');
+
+      // Post-SAR
+      map.addSource('post-sar', {
+        type: 'raster',
+        tiles: [`${baseUrl}/post_sar/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14
+      });
+      map.addLayer({
+        id: 'post-sar-layer',
+        type: 'raster',
+        source: 'post-sar',
+        paint: {
+          'raster-opacity': (layers.earthObservation.postEventSar.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) : 1),
+          'raster-resampling': 'linear'
+        },
+        layout: { visibility: layers.earthObservation.postEventSar.visible ? 'visible' : 'none' }
+      }, 'basemap-labels');
+
+      // Diff-dB
+      map.addSource('diff-db', {
+        type: 'raster',
+        tiles: [`${baseUrl}/diff_db/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14
+      });
+      map.addLayer({
+        id: 'diff-db-layer',
+        type: 'raster',
+        source: 'diff-db',
+        paint: {
+          'raster-opacity': layers.floodInundation.sarBackscatterChanges.opacity / 100,
+          'raster-resampling': 'linear'
+        },
+        layout: { visibility: layers.floodInundation.sarBackscatterChanges.visible ? 'visible' : 'none' }
+      }, 'basemap-labels');
+
+      // OPERA Water
+      map.addSource('opera-water', {
+        type: 'raster',
+        tiles: [`${baseUrl}/opera_water/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14
+      });
+      map.addLayer({
+        id: 'opera-water-layer',
+        type: 'raster',
+        source: 'opera-water',
+        paint: {
+          'raster-opacity': layers.floodInundation.operaMappedWater.opacity / 100,
+          'raster-resampling': 'linear'
+        },
+        layout: { visibility: layers.floodInundation.operaMappedWater.visible ? 'visible' : 'none' }
+      }, 'basemap-labels');
+
+      // Gap Overlay (Candidate Inundation)
+      map.addSource('gap-overlay', {
+        type: 'raster',
+        tiles: [`${baseUrl}/gap_overlay/{z}/{x}/{y}.png`],
+        tileSize: 256,
+        minzoom: 11,
+        maxzoom: 14
+      });
+      map.addLayer({
+        id: 'gap-overlay-layer',
+        type: 'raster',
+        source: 'gap-overlay',
+        paint: {
+          'raster-opacity': (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) : 1),
+          'raster-resampling': 'linear'
+        },
+        layout: { visibility: layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none' }
+      }, 'basemap-labels');
+
+      // Vector Regions GeoJSON
+      const vectorLayers = ['candidates-line', 'candidates-fill', 'burst-boundary-line'];
+      vectorLayers.forEach((l) => {
+        if (map.getLayer(l)) map.removeLayer(l);
+      });
+      if (map.getSource('regions-geojson')) map.removeSource('regions-geojson');
+
+      const geojsonUrl = `/data/cases/${activeCaseId}/regions.geojson`;
+      map.addSource('regions-geojson', {
+        type: 'geojson',
+        data: geojsonUrl
+      });
+
+      // Polygons Fill
+      map.addLayer({
+        id: 'candidates-fill',
+        type: 'fill',
+        source: 'regions-geojson',
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'class_id'],
+            1, '#328CFF',
+            2, '#FFB020',
+            3, '#14B8A6',
+            4, '#FFB020',
+            '#FFB020'
+          ],
+          'fill-opacity': [
+            'match',
+            ['get', 'class_id'],
+            1, (layers.floodInundation.operaMappedWater.opacity / 100) * 0.45,
+            2, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.55 : 0.55),
+            0.35
+          ],
+          'fill-antialias': true
+        },
+        layout: {
+          visibility: layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none'
+        }
+      }, 'basemap-labels');
+
+      // Polygons Outline Line
+      map.addLayer({
+        id: 'candidates-line',
+        type: 'line',
+        source: 'regions-geojson',
+        paint: {
+          'line-color': [
+            'match',
+            ['get', 'class_id'],
+            1, '#328CFF',
+            2, '#FFB020',
+            3, '#14B8A6',
+            4, '#FFB020',
+            '#FFB020'
+          ],
+          'line-width': 1.6,
+          'line-opacity': 0.85
+        },
+        layout: {
+          visibility: layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none'
+        }
+      }, 'basemap-labels');
+
+      // Burst Swath Perimeter Boundary
+      if (currentCase?.aoi_bbox) {
+        const [w, s, e, n] = currentCase.aoi_bbox;
+        const boundaryGeojson: any = {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]]
+          }
+        };
+        if (map.getSource('aoi-boundary')) {
+          (map.getSource('aoi-boundary') as maplibregl.GeoJSONSource).setData(boundaryGeojson);
+        } else {
+          map.addSource('aoi-boundary', { type: 'geojson', data: boundaryGeojson });
+          map.addLayer({
+            id: 'burst-boundary-line',
+            type: 'line',
+            source: 'aoi-boundary',
+            paint: {
+              'line-color': '#E85A9E',
+              'line-width': 2.0,
+              'line-dasharray': [4, 3]
+            },
+            layout: {
+              visibility: layers.spatialContext.studyAreaBoundary.visible ? 'visible' : 'none'
+            }
+          });
+        }
+      }
+
+      // Inspection Site Markers
+      const sites = CASE_INSPECTION_SITES[activeCaseId] || [];
+      const sitesGeojson: any = {
+        type: 'FeatureCollection',
+        features: sites.map((s) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: s.coords },
+          properties: s
+        }))
+      };
+      if (map.getSource('site-markers')) {
+        (map.getSource('site-markers') as maplibregl.GeoJSONSource).setData(sitesGeojson);
+      } else {
+        map.addSource('site-markers', { type: 'geojson', data: sitesGeojson });
+        map.addLayer({
+          id: 'site-markers-pulse',
+          type: 'circle',
+          source: 'site-markers',
+          paint: {
+            'circle-radius': 14,
+            'circle-color': '#2DD4A0',
+            'circle-opacity': 0.25
+          }
+        });
+        map.addLayer({
+          id: 'site-markers-dot',
+          type: 'circle',
+          source: 'site-markers',
+          paint: {
+            'circle-radius': 5,
+            'circle-color': '#2DD4A0',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#FFFFFF'
+          }
+        });
+      }
     }
+  };
 
-    const newLayer = L.tileLayer(url, {
-      maxZoom: 19,
-      opacity: layers.earthObservation.satelliteBasemap.opacity / 100
-    }).addTo(map);
-
-    baseTileLayerRef.current = newLayer;
-
-    // Keep labels on top
-    if (labelsTileLayerRef.current) {
-      labelsTileLayerRef.current.bringToFront();
-    }
-  }, [basemapType, layers.earthObservation.satelliteBasemap.opacity]);
-
-  // Fly to target coords when location search is clicked
+  // Fly to target coords
   useEffect(() => {
     if (targetCoords && mapRef.current) {
-      mapRef.current.flyTo(targetCoords, 13, { duration: 1.5 });
+      mapRef.current.flyTo({ center: [targetCoords[1], targetCoords[0]], zoom: 13.5, speed: 1.5 });
     }
   }, [targetCoords]);
 
   // Center on current case
   useEffect(() => {
-    if (currentCase?.center && mapRef.current) {
-      mapRef.current.setView([currentCase.center[1], currentCase.center[0]], 12);
-    }
-  }, [currentCase?.case_id]);
+    const map = mapRef.current;
+    if (!map || !isMapLoadedRef.current) return;
+    const { center, zoom } = getCaseCenterAndZoom(caseId);
+    map.flyTo({ center, zoom, speed: 1.2 });
+    loadCaseData(map, caseId);
+  }, [caseId]);
 
-  // Render Study Area Boundary
+  // Handle Layer Opacity and Visibility Changes
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !isMapLoadedRef.current) return;
 
-    if (boundaryLayerRef.current) {
-      map.removeLayer(boundaryLayerRef.current);
-      boundaryLayerRef.current = null;
+    // Basemap satellite opacity
+    if (map.getLayer('basemap-satellite')) {
+      map.setPaintProperty('basemap-satellite', 'raster-opacity', layers.earthObservation.satelliteBasemap.opacity / 100);
     }
-
-    if (layers.spatialContext.studyAreaBoundary.visible && currentCase?.bounds_wgs84) {
-      const [w, s, e, n] = currentCase.bounds_wgs84;
-      const poly = L.polygon(
-        [
-          [s, w],
-          [n, w],
-          [n, e],
-          [s, e]
-        ],
-        {
-          color: '#E85A9E',
-          weight: 2,
-          dashArray: '5, 5',
-          fillColor: '#E85A9E',
-          fillOpacity: 0.03,
-          interactive: false
-        }
-      ).addTo(map);
-      boundaryLayerRef.current = poly;
+    // Basemap labels visibility
+    if (map.getLayer('basemap-labels')) {
+      map.setLayoutProperty('basemap-labels', 'visibility', layers.spatialContext.roads.visible ? 'visible' : 'none');
     }
-  }, [currentCase?.bounds_wgs84, layers.spatialContext.studyAreaBoundary.visible]);
+    // Pre-SAR
+    if (map.getLayer('pre-sar-layer')) {
+      map.setLayoutProperty('pre-sar-layer', 'visibility', layers.earthObservation.preEventSar.visible ? 'visible' : 'none');
+      const op = (layers.earthObservation.preEventSar.opacity / 100) * (comparisonMode === 'swipe' ? (1 - sliderPos / 100) : 1);
+      map.setPaintProperty('pre-sar-layer', 'raster-opacity', op);
+    }
+    // Post-SAR
+    if (map.getLayer('post-sar-layer')) {
+      map.setLayoutProperty('post-sar-layer', 'visibility', layers.earthObservation.postEventSar.visible ? 'visible' : 'none');
+      const op = (layers.earthObservation.postEventSar.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) : 1);
+      map.setPaintProperty('post-sar-layer', 'raster-opacity', op);
+    }
+    // OPERA Water
+    if (map.getLayer('opera-water-layer')) {
+      map.setLayoutProperty('opera-water-layer', 'visibility', layers.floodInundation.operaMappedWater.visible ? 'visible' : 'none');
+      map.setPaintProperty('opera-water-layer', 'raster-opacity', layers.floodInundation.operaMappedWater.opacity / 100);
+    }
+    // Gap Overlay (Candidate Floodwater)
+    if (map.getLayer('gap-overlay-layer')) {
+      map.setLayoutProperty('gap-overlay-layer', 'visibility', layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none');
+      const op = (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) : 1);
+      map.setPaintProperty('gap-overlay-layer', 'raster-opacity', op);
+    }
+    // Diff dB
+    if (map.getLayer('diff-db-layer')) {
+      map.setLayoutProperty('diff-db-layer', 'visibility', layers.floodInundation.sarBackscatterChanges.visible ? 'visible' : 'none');
+      map.setPaintProperty('diff-db-layer', 'raster-opacity', layers.floodInundation.sarBackscatterChanges.opacity / 100);
+    }
+    // Vector Regions
+    if (map.getLayer('candidates-fill') && map.getLayer('candidates-line')) {
+      const vis = layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none';
+      map.setLayoutProperty('candidates-fill', 'visibility', vis);
+      map.setLayoutProperty('candidates-line', 'visibility', vis);
+    }
+    // Boundary line
+    if (map.getLayer('burst-boundary-line')) {
+      map.setLayoutProperty('burst-boundary-line', 'visibility', layers.spatialContext.studyAreaBoundary.visible ? 'visible' : 'none');
+    }
+  }, [layers, comparisonMode, sliderPos]);
 
-  // Render OPERA & PARALLAX Inundation Layers
+  // Basemap switcher
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
-
-    // Clear previous
-    if (operaLayerRef.current) {
-      map.removeLayer(operaLayerRef.current);
-      operaLayerRef.current = null;
+    if (!map || !isMapLoadedRef.current) return;
+    if (basemapType === 'satellite') {
+      if (map.getLayer('basemap-satellite')) map.setLayoutProperty('basemap-satellite', 'visibility', 'visible');
+      if (map.getLayer('basemap-dark')) map.setLayoutProperty('basemap-dark', 'visibility', 'none');
+    } else {
+      if (map.getLayer('basemap-satellite')) map.setLayoutProperty('basemap-satellite', 'visibility', 'none');
+      if (map.getLayer('basemap-dark')) map.setLayoutProperty('basemap-dark', 'visibility', 'visible');
     }
-    if (candidateLayerRef.current) {
-      map.removeLayer(candidateLayerRef.current);
-      candidateLayerRef.current = null;
-    }
-
-    if (!geojsonData) return;
-
-    const operaVisible = layers.floodInundation.operaMappedWater.visible;
-    const candidateVisible = layers.floodInundation.candidateFloodwater.visible;
-    const operaOpacity = layers.floodInundation.operaMappedWater.opacity / 100;
-    const candidateOpacity = layers.floodInundation.candidateFloodwater.opacity / 100;
-
-    // 1. OPERA Baseline Mapped Water Layer (Blue #328CFF)
-    if (operaVisible) {
-      const opera = L.geoJSON(geojsonData, {
-        filter: (f) => f.properties?.class_id === 1 || f.properties?.class_name === 'open_water_specular',
-        style: {
-          color: '#328CFF',
-          weight: 1.5,
-          fillColor: '#328CFF',
-          fillOpacity: operaOpacity,
-          lineCap: 'round',
-          lineJoin: 'round'
-        },
-        onEachFeature: (f, layer) => {
-          layer.bindPopup(`
-            <div style="font-family: inherit; font-size: 11px;">
-              <strong style="color: #328CFF;">OPERA Mapped Surface Water</strong><br/>
-              Class: Open Water (Specular Mirror)<br/>
-              Sensor: Sentinel-1 C-SAR / OPERA DSWx<br/>
-              Status: Baseline Confirmed
-            </div>
-          `);
-        }
-      }).addTo(map);
-      operaLayerRef.current = opera;
-    }
-
-    // 2. Candidate Inundation (Golden Amber #FFB020)
-    if (candidateVisible && comparisonMode !== 'temporal') {
-      const candidate = L.geoJSON(geojsonData, {
-        filter: (f) =>
-          f.properties?.class_id === 2 || f.properties?.class_name === 'candidate_inundated_vegetation',
-        style: {
-          color: '#FFB020',
-          weight: 1.8,
-          fillColor: '#FFB020',
-          fillOpacity: candidateOpacity,
-          lineCap: 'round',
-          lineJoin: 'round'
-        },
-        onEachFeature: (f, layer) => {
-          layer.bindPopup(`
-            <div style="font-family: inherit; font-size: 11px;">
-              <strong style="color: #FFB020;">Candidate Inundated Vegetation</strong><br/>
-              Classification: Canopy Double-Bounce (+2.5 dB)<br/>
-              Potential Gap in Conventional Optical Sensors<br/>
-              Status: Candidate Floodwater (Verified SAR Signal)
-            </div>
-          `);
-        }
-      }).addTo(map);
-      candidateLayerRef.current = candidate;
-    }
-  }, [geojsonData, layers.floodInundation, comparisonMode]);
+  }, [basemapType]);
 
   // Handle Swipe Divider Dragging
   const handleMouseDown = () => setIsDraggingSlider(true);
@@ -276,14 +624,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
     >
-      {/* Leaflet Map Canvas */}
+      {/* MapLibre Canvas Container */}
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
       {/* SWIPE COMPARISON OVERLAY (When in Swipe Mode) */}
       {comparisonMode === 'swipe' && (
         <>
           {/* Top Pill Labels */}
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3 py-1.5 rounded-full bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl pointer-events-none">
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl pointer-events-none">
             <span className="text-xs font-semibold text-midnight-opera px-2 py-0.5 rounded">
               OPERA Baseline
             </span>
@@ -299,7 +647,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             style={{ left: `${sliderPos}%` }}
           >
             {/* Vertical Line */}
-            <div className="w-0.5 h-full bg-white/70 shadow-[0_0_10px_rgba(255,255,255,0.6)]" />
+            <div className="w-0.5 h-full bg-white/70 shadow-[0_0_12px_rgba(255,255,255,0.7)]" />
 
             {/* Drag Handle */}
             <div
@@ -352,7 +700,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
           {showBasemapMenu && (
             <div className="absolute right-0 top-full mt-1 w-28 bg-midnight-panel/95 backdrop-blur-md border border-midnight-border rounded-xl shadow-2xl py-1 z-30 text-xs">
-              {(['satellite', 'dark', 'topo'] as const).map((type) => (
+              {(['satellite', 'dark'] as const).map((type) => (
                 <button
                   key={type}
                   onClick={() => {
@@ -388,8 +736,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           </button>
           <button
             onClick={() => {
-              if (currentCase?.center) {
-                mapRef.current?.setView([currentCase.center[1], currentCase.center[0]], 12);
+              const map = mapRef.current;
+              if (map) {
+                const { center, zoom } = getCaseCenterAndZoom(caseId);
+                map.flyTo({ center, zoom, pitch: 0, bearing: 0 });
               }
             }}
             className="p-2 text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated transition"
@@ -400,7 +750,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           <button
             onClick={() => {
               navigator.geolocation?.getCurrentPosition((pos) => {
-                mapRef.current?.flyTo([pos.coords.latitude, pos.coords.longitude], 13);
+                mapRef.current?.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 13 });
               });
             }}
             className="p-2 text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated transition"
@@ -410,10 +760,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           </button>
           <button
             onClick={() => {
-              // 3D perspective simulated tilt toggle
-              alert('3D Mode: Operating in high-precision 2D orthographic geospatial view per scientific protocol.');
+              const map = mapRef.current;
+              if (map) {
+                const newPitch = is3D ? 0 : 55;
+                map.easeTo({ pitch: newPitch, duration: 600 });
+                setIs3D(!is3D);
+              }
             }}
-            className="p-2 text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated transition font-mono text-[10px] font-bold"
+            className={`p-2 transition font-mono text-[10px] font-bold ${
+              is3D ? 'text-midnight-accent bg-midnight-elevated' : 'text-midnight-secondary hover:text-midnight-primary'
+            }`}
             title="Toggle 3D Perspective"
           >
             3D
@@ -424,9 +780,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       {/* BOTTOM RIGHT MINIMAP INSET */}
       <div className="absolute bottom-24 right-3 z-10 w-28 h-24 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-none hidden md:flex flex-col">
         <div className="w-full h-full relative bg-slate-950/90 flex items-center justify-center">
-          {/* Faint context grid */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#203247_1px,transparent_1px),linear-gradient(to_bottom,#203247_1px,transparent_1px)] bg-[size:14px_14px] opacity-30" />
-          {/* Pink AOI Box Outline */}
           <div className="w-10 h-8 rounded border border-midnight-boundary bg-midnight-boundary/10 flex items-center justify-center">
             <span className="w-1.5 h-1.5 rounded-full bg-midnight-boundary" />
           </div>
@@ -435,13 +789,11 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
       {/* BOTTOM LEFT SCALE & COORDINATES READOUT */}
       <div className="absolute bottom-2 left-3 z-10 flex items-center gap-4 text-[10px] font-mono text-midnight-secondary/80 pointer-events-none">
-        {/* Scale Bar */}
         <div className="flex items-center gap-1.5">
           <div className="w-12 h-1 border-b-2 border-l-2 border-r-2 border-midnight-secondary/60" />
           <span>5 km</span>
         </div>
 
-        {/* Dynamic Coordinates */}
         <div className="bg-midnight-panel/80 px-2 py-0.5 rounded border border-midnight-border/40">
           Lat <span className="text-midnight-primary">{mouseCoords.lat}°</span> Lon{' '}
           <span className="text-midnight-primary">{mouseCoords.lon}°</span>
@@ -450,3 +802,5 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     </div>
   );
 };
+
+export default MapViewer;

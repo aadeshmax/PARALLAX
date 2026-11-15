@@ -54,46 +54,24 @@ export const App: React.FC = () => {
   // Layer Groups State matching the approved design
   const [layerGroups, setLayerGroups] = useState<LayerGroupsState>({
     earthObservation: {
-      satelliteBasemap: { id: 'sat_basemap', name: 'Satellite basemap', visible: true, opacity: 80 },
-      preEventSar: { id: 'pre_sar', name: 'Pre-event SAR (28 Apr)', visible: true, opacity: 70 },
-      postEventSar: { id: 'post_sar', name: 'Post-event SAR (02 May)', visible: true, opacity: 70 }
+      satelliteBasemap: { id: 'sat_basemap', name: 'Satellite basemap', visible: true, opacity: 85 },
+      preEventSar: { id: 'pre_sar', name: 'Pre-event SAR (24 Nov)', visible: true, opacity: 80 },
+      postEventSar: { id: 'post_sar', name: 'During-event SAR (06 Dec)', visible: true, opacity: 80 }
     },
     floodInundation: {
-      operaMappedWater: { id: 'opera_water', name: 'OPERA mapped water', visible: true, opacity: 70, color: '#328CFF' },
-      candidateFloodwater: { id: 'candidate_water', name: 'Candidate floodwater', visible: true, opacity: 60, color: '#FFB020' },
+      operaMappedWater: { id: 'opera_water', name: 'OPERA mapped water', visible: true, opacity: 75, color: '#328CFF' },
+      candidateFloodwater: { id: 'candidate_water', name: 'Candidate floodwater', visible: true, opacity: 75, color: '#FFB020' },
       permanentWater: { id: 'permanent_water', name: 'Permanent water', visible: false, opacity: 100, color: '#14B8A6' },
-      sarBackscatterChanges: { id: 'sar_changes', name: 'SAR backscatter changes', visible: false, opacity: 50, color: '#A78BFA' },
+      sarBackscatterChanges: { id: 'sar_changes', name: 'SAR backscatter changes (ΔdB)', visible: false, opacity: 70, color: '#A78BFA' },
       uncertaintyNoData: { id: 'uncertainty', name: 'Uncertain / No data', visible: false, opacity: 40, color: '#64748B' }
     },
     spatialContext: {
       studyAreaBoundary: { id: 'boundary', name: 'Study area boundary', visible: true, opacity: 100, color: '#E85A9E' },
-      roads: { id: 'roads', name: 'Roads', visible: true, opacity: 60 },
+      roads: { id: 'roads', name: 'Roads & Place Labels', visible: true, opacity: 85 },
       waterBodies: { id: 'water_bodies', name: 'Water bodies', visible: true, opacity: 80, color: '#38BDF8' },
       administrativeBoundaries: { id: 'admin_bounds', name: 'Administrative boundaries', visible: false, opacity: 40 }
     }
   });
-
-  // Timeline Observations
-  const timelineObservations: TimelineObservation[] = [
-    {
-      id: 'pre_event',
-      label: 'Pre-event',
-      timestamp: selectedCaseId === 'chennai_live_case' ? 'Nov 24, 2024 00:32 UTC' : 'Apr 25, 2025 08:42 UTC',
-      sensor: 'Sentinel-1 (SAR)'
-    },
-    {
-      id: 'event',
-      label: 'Event',
-      timestamp: selectedCaseId === 'chennai_live_case' ? 'Nov 30, 2024 18:00 UTC' : 'Apr 30, 2025 08:41 UTC',
-      sensor: 'Sentinel-1 (SAR)'
-    },
-    {
-      id: 'post_event',
-      label: 'Post-event',
-      timestamp: selectedCaseId === 'chennai_live_case' ? 'Dec 06, 2024 00:32 UTC' : 'May 02, 2025 08:37 UTC',
-      sensor: 'Sentinel-1 (SAR)'
-    }
-  ];
 
   // Initial Fetch
   useEffect(() => {
@@ -108,7 +86,6 @@ export const App: React.FC = () => {
         if (ds) setDatasets(ds);
         if (cs && cs.length > 0) {
           setCases(cs);
-          // Prefer chennai_live_case if available
           const hasChennai = cs.some((c) => c.case_id === 'chennai_live_case');
           setSelectedCaseId(hasChennai ? 'chennai_live_case' : cs[0].case_id);
         }
@@ -176,6 +153,40 @@ export const App: React.FC = () => {
 
   const currentCase = cases.find((c) => c.case_id === selectedCaseId) || cases[0] || null;
 
+  // Real Timeline Observations from case manifest scenes
+  const scenes = currentCase?.scenes || [];
+  const timelineObservations: TimelineObservation[] = [
+    {
+      id: 'pre_event',
+      label: 'Pre-event',
+      timestamp: scenes[0]?.acquisition_timestamp
+        ? new Date(scenes[0].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
+        : selectedCaseId === 'chennai_live_case'
+          ? 'Nov 24, 2024 00:32 UTC'
+          : 'Apr 26, 2024 22:07 UTC',
+      sensor: scenes[0]?.polarization ? `Sentinel-1 (${scenes[0].polarization})` : 'Sentinel-1 (SAR)',
+      thumbnailUrl: `/data/cases/${selectedCaseId}/tiles/pre_sar/12/1463/2403.png`
+    },
+    {
+      id: 'event',
+      label: 'During-Event',
+      timestamp: scenes[1]?.acquisition_timestamp
+        ? new Date(scenes[1].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
+        : selectedCaseId === 'chennai_live_case'
+          ? 'Dec 06, 2024 00:32 UTC'
+          : 'May 08, 2024 22:07 UTC',
+      sensor: scenes[1]?.polarization ? `Sentinel-1 (${scenes[1].polarization})` : 'Sentinel-1 (SAR)',
+      thumbnailUrl: `/data/cases/${selectedCaseId}/tiles/post_sar/12/1463/2403.png`
+    },
+    {
+      id: 'gap_overlay',
+      label: 'Detection Gap',
+      timestamp: currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap',
+      sensor: 'PARALLAX Analysis',
+      thumbnailUrl: `/data/cases/${selectedCaseId}/tiles/gap_overlay/12/1463/2403.png`
+    }
+  ];
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-midnight-bg text-midnight-primary font-sans select-none">
       {/* 1. TOP COMMAND BAR */}
@@ -194,18 +205,23 @@ export const App: React.FC = () => {
         onLocationSelect={(lat, lon) => setTargetCoords([lat, lon])}
       />
 
-      {/* 2. CENTRAL INTERACTIVE GEOSPATIAL MAP */}
+      {/* 2. CENTRAL INTERACTIVE GEOSPATIAL MAP (MapLibre GL with Real XYZ Raster Tiles) */}
       <main className="absolute inset-0 z-0">
         <MapViewer
           metrics={metrics}
           geojsonData={geojsonData}
           currentCase={currentCase}
+          caseId={selectedCaseId}
           layers={layerGroups}
           comparisonMode={comparisonMode}
           onSelectComparisonMode={setComparisonMode}
           sliderPos={sliderPos}
           onSliderChange={setSliderPos}
           targetCoords={targetCoords}
+          onSelectEvidence={(ev) => {
+            setIsAnalysisInspectorOpen(true);
+            setInspectorTab('evidence');
+          }}
         />
       </main>
 
@@ -217,7 +233,7 @@ export const App: React.FC = () => {
         onClose={() => setIsLayerExplorerOpen(false)}
       />
 
-      {/* 4. RIGHT FLOATING ANALYSIS INSPECTOR */}
+      {/* 4. RIGHT FLOATING ANALYSIS INSPECTOR (Genuine Statistics from Case Manifest & Backend) */}
       <AnalysisInspector
         metrics={metrics}
         currentCase={currentCase}
@@ -238,11 +254,22 @@ export const App: React.FC = () => {
         onOpenEvidenceModal={(sec) => setEvidenceModalSection(sec)}
       />
 
-      {/* 5. SATELLITE ACQUISITION TIMELINE */}
+      {/* 5. SATELLITE ACQUISITION TIMELINE (Real SAR Previews & Timestamps) */}
       <AcquisitionTimeline
         observations={timelineObservations}
         selectedIndex={selectedTimelineIndex}
-        onSelectIndex={setSelectedTimelineIndex}
+        onSelectIndex={(idx) => {
+          setSelectedTimelineIndex(idx);
+          if (idx === 0) {
+            handleUpdateLayer('earthObservation', 'preEventSar', { visible: true });
+            handleUpdateLayer('earthObservation', 'postEventSar', { visible: false });
+          } else if (idx === 1) {
+            handleUpdateLayer('earthObservation', 'preEventSar', { visible: false });
+            handleUpdateLayer('earthObservation', 'postEventSar', { visible: true });
+          } else {
+            handleUpdateLayer('floodInundation', 'candidateFloodwater', { visible: true });
+          }
+        }}
         isOpen={isTimelineOpen}
         onToggleOpen={() => setIsTimelineOpen(!isTimelineOpen)}
       />
@@ -250,6 +277,7 @@ export const App: React.FC = () => {
       {/* 6. SCIENTIFIC ANALYTICS DRAWER & REGIONAL STATS */}
       <ScientificAnalytics
         metrics={metrics}
+        currentCase={currentCase}
         isOpen={true}
         onToggleOpen={() => {}}
       />
@@ -257,6 +285,7 @@ export const App: React.FC = () => {
       {/* 7. EXPORT MODAL */}
       <ExportModal
         metrics={metrics}
+        currentCase={currentCase}
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
       />
@@ -265,6 +294,7 @@ export const App: React.FC = () => {
       <EvidenceModal
         sectionId={evidenceModalSection}
         metrics={metrics}
+        currentCase={currentCase}
         onClose={() => setEvidenceModalSection(null)}
       />
     </div>

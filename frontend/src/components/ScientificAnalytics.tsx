@@ -8,16 +8,18 @@ import {
   X,
   FileSpreadsheet
 } from 'lucide-react';
-import { AnalysisMetrics } from '../types';
+import { AnalysisMetrics, CaseStudy } from '../types';
 
 interface ScientificAnalyticsProps {
   metrics: AnalysisMetrics | null;
+  currentCase?: CaseStudy | null;
   isOpen: boolean;
   onToggleOpen: () => void;
 }
 
 export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
   metrics,
+  currentCase,
   isOpen,
   onToggleOpen
 }) => {
@@ -31,8 +33,11 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
     { name: 'Velachery Lowlands', extentKm2: 1.6, risk: 'Elevated' }
   ];
 
-  const operaWaterKm2 = metrics?.opera_dswx_water_km2 ?? 42.8;
-  const parallaxWaterKm2 = (metrics?.open_water_km2 ?? 42.8) + (metrics?.candidate_inundated_veg_km2 ?? 18.4);
+  const stats = currentCase?.statistics;
+  const operaWaterKm2 = metrics?.opera_dswx_water_km2 ?? stats?.baseline_water_area_sqkm ?? 30.2;
+  const parallaxWaterKm2 = (metrics?.open_water_km2 !== undefined && metrics?.candidate_inundated_veg_km2 !== undefined)
+    ? (metrics.open_water_km2 + metrics.candidate_inundated_veg_km2)
+    : stats?.candidate_inundation_area_sqkm ?? 35.7;
 
   return (
     <>

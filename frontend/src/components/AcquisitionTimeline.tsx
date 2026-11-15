@@ -99,20 +99,23 @@ export const AcquisitionTimeline: React.FC<AcquisitionTimelineProps> = ({
                       : 'bg-midnight-panel/80 border-midnight-border/60 hover:bg-midnight-elevated/60 hover:border-midnight-border'
                   }`}
                 >
-                  {/* Thumbnail / Radar preview banner */}
+                  {/* Real SAR Thumbnail Preview */}
                   <div className="w-full h-16 rounded-lg bg-slate-900 border border-midnight-border/50 relative overflow-hidden mb-2 flex items-center justify-center">
-                    {/* Stylized Synthetic Radar Backscatter Noise Pattern */}
-                    <div
-                      className="absolute inset-0 opacity-40 mix-blend-screen"
-                      style={{
-                        backgroundImage: `radial-gradient(circle at ${idx * 40}px 30px, #287BFF 0%, transparent 60%), radial-gradient(circle at 100px 20px, #FFB020 0%, transparent 50%)`,
-                        backgroundSize: 'cover'
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-[linear-gradient(45deg,#060D17_25%,transparent_25%),linear-gradient(-45deg,#060D17_25%,transparent_25%)] bg-[size:6px_6px] opacity-30" />
-                    <Cloud className="w-5 h-5 text-midnight-secondary/40 relative z-10" />
+                    {obs.thumbnailUrl ? (
+                      <img
+                        src={obs.thumbnailUrl}
+                        alt={obs.label}
+                        className="w-full h-full object-cover contrast-125"
+                        onError={(e) => {
+                          // Hide broken image and fallback to radar noise
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Cloud className="w-5 h-5 text-midnight-secondary/40 relative z-10" />
+                    )}
                     {isSelected && (
-                      <span className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-midnight-accent text-[9px] font-bold text-white uppercase">
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-midnight-accent text-[9px] font-bold text-white uppercase shadow">
                         Active
                       </span>
                     )}

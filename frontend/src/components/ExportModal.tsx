@@ -9,16 +9,18 @@ import {
   Check,
   ExternalLink
 } from 'lucide-react';
-import { AnalysisMetrics } from '../types';
+import { AnalysisMetrics, CaseStudy } from '../types';
 
 interface ExportModalProps {
   metrics: AnalysisMetrics | null;
+  currentCase?: CaseStudy | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
   metrics,
+  currentCase,
   isOpen,
   onClose
 }) => {

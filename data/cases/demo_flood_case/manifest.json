@@ -1,7 +1,8 @@
 {
   "case_id": "demo_flood_case",
-  "title": "NASA OPERA Sentinel-1 Flood Investigation (Verified Demonstration)",
-  "location": "Coastal Basin AOI (UTM 30N)",
+  "title": "NASA OPERA Verified Demo Case (Brittany Basin, UTM 30N)",
+  "event_name": "NASA OPERA Verified Demo Case (Brittany Basin, UTM 30N)",
+  "location": "Coastal Flood Basin, Brittany (UTM 30N)",
   "crs": "EPSG:32630",
   "bounds_utm": [
     335220.0,

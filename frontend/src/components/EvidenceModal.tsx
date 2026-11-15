@@ -1,16 +1,18 @@
 import React from 'react';
 import { X, BookOpen, AlertTriangle, ShieldCheck, Activity } from 'lucide-react';
-import { AnalysisMetrics } from '../types';
+import { AnalysisMetrics, CaseStudy } from '../types';
 
 interface EvidenceModalProps {
   sectionId: string | null;
   metrics: AnalysisMetrics | null;
+  currentCase?: CaseStudy | null;
   onClose: () => void;
 }
 
 export const EvidenceModal: React.FC<EvidenceModalProps> = ({
   sectionId,
   metrics,
+  currentCase,
   onClose
 }) => {
   if (!sectionId) return null;

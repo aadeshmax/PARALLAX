@@ -82,22 +82,34 @@ export interface AnalysisMetrics {
 
 export interface CaseStudy {
   case_id: string;
-  title: string;
-  location: string;
-  crs: string;
-  bounds_utm: number[];
-  bounds_wgs84: number[];
-  center: [number, number];
-  pre_event: {
-    granule_id: string;
-    acquisition_date: string;
-    sensor: string;
+  title?: string;
+  event_name?: string;
+  location?: string;
+  crs?: string;
+  analysis_crs?: string;
+  bounds_utm?: number[];
+  bounds_wgs84?: number[];
+  aoi_bbox?: number[];
+  center: [number, number] | [number, number, number];
+  statistics?: any;
+  layers?: any[];
+  regions_url?: string;
+  pre_event?: {
+    granule_id?: string;
+    acquisition_date?: string;
+    sensor?: string;
   };
-  post_event: {
-    granule_id: string;
-    acquisition_date: string;
-    sensor: string;
+  post_event?: {
+    granule_id?: string;
+    acquisition_date?: string;
+    sensor?: string;
   };
+  scenes?: Array<{
+    scene_id: string;
+    acquisition_timestamp?: string;
+    polarization?: string;
+  }>;
+  reference_product?: any;
 }
 
 export type ComparisonMode = 'swipe' | 'side-by-side' | 'temporal' | 'difference';

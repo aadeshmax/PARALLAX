@@ -120,9 +120,22 @@ def process_satellite_imagery(payload: ProcessRequest):
     dswx = str(case_dir / "opera_dswx_aligned.tif")
 
     if not os.path.exists(post_vv) or not os.path.exists(pre_vv):
+        vv_files = sorted(list(case_dir.glob("*VV*.tif")))
+        vh_files = sorted(list(case_dir.glob("*VH*.tif")))
+        wtr_files = sorted(list(case_dir.glob("*WTR*.tif")) + list(case_dir.glob("*DSWx*.tif")))
+        if len(vv_files) >= 2:
+            pre_vv = str(vv_files[0])
+            post_vv = str(vv_files[1])
+        if len(vh_files) >= 2:
+            pre_vh = str(vh_files[0])
+            post_vh = str(vh_files[1])
+        if wtr_files:
+            dswx = str(wtr_files[0])
+
+    if not os.path.exists(post_vv) or not os.path.exists(pre_vv):
         raise HTTPException(
             status_code=400,
-            detail="Missing required pre or post RTC-S1 GeoTIFF rasters in case directory."
+            detail=f"Missing required pre or post RTC-S1 GeoTIFF rasters in case directory '{payload.case_id}'."
         )
 
     # Execute analysis engine

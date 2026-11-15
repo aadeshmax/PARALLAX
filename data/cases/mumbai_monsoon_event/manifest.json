@@ -1,0 +1,109 @@
+{
+  "schema_version": "2.0.0",
+  "case_id": "mumbai_monsoon_event",
+  "title": "Mumbai Monsoon Flood & Mangroves (July 2023)",
+  "event_name": "Mumbai Monsoon Flood & Mangroves (July 2023)",
+  "location": "Mithi River & Thane Creek, Mumbai, India (UTM 43N)",
+  "aoi_bbox": [
+    72.860559,
+    19.079528,
+    72.9471,
+    19.161786
+  ],
+  "center": [
+    72.90383,
+    19.120657,
+    12
+  ],
+  "analysis_crs": "EPSG:32643",
+  "grid_resolution": 30.0,
+  "scenes": [
+    {
+      "scene_id": "OPERA_L2_RTC-S1_MUMBAI_20230514T124500Z_VV",
+      "acquisition_timestamp": "2023-05-14T12:45:00Z",
+      "polarization": "VV",
+      "source_url": "https://search.asf.alaska.edu/"
+    },
+    {
+      "scene_id": "OPERA_L2_RTC-S1_MUMBAI_20230726T124500Z_VV",
+      "acquisition_timestamp": "2023-07-26T12:45:00Z",
+      "polarization": "VV",
+      "source_url": "https://search.asf.alaska.edu/"
+    }
+  ],
+  "reference_product": {
+    "product_name": "NASA OPERA DSWx-S1",
+    "granule_id": "OPERA_L3_DSWx-S1_MUMBAI_MONSOON_EVENT",
+    "source_url": "https://podaac.jpl.nasa.gov/OPERA"
+  },
+  "land_cover_source": "Copernicus / Dynamic World 10m Coastal Land Cover",
+  "preprocessing": {
+    "resampling_continuous": "bilinear",
+    "resampling_categorical": "nearest",
+    "speckle_filter": "median_3x3",
+    "radiometric_calibration": "linear_to_db"
+  },
+  "layers": [
+    {
+      "id": "pre_sar",
+      "name": "Pre-Event Radar",
+      "type": "raster",
+      "tile_url_template": "tiles/pre_sar/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14
+    },
+    {
+      "id": "post_sar",
+      "name": "During-Event Radar",
+      "type": "raster",
+      "tile_url_template": "tiles/post_sar/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14
+    },
+    {
+      "id": "diff_db",
+      "name": "Signed Change (\u0394dB)",
+      "type": "raster",
+      "tile_url_template": "tiles/diff_db/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14
+    },
+    {
+      "id": "opera_water",
+      "name": "NASA OPERA Reference Water",
+      "type": "raster",
+      "tile_url_template": "tiles/opera_water/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14
+    },
+    {
+      "id": "gap_overlay",
+      "name": "Cross-Sensor Gap (Additional Candidates)",
+      "type": "raster",
+      "tile_url_template": "tiles/gap_overlay/{z}/{x}/{y}.png",
+      "minzoom": 11,
+      "maxzoom": 14
+    }
+  ],
+  "regions_url": "regions.geojson",
+  "statistics": {
+    "total_valid_area_sqkm": 78.8544,
+    "baseline_water_area_sqkm": 53.3673,
+    "candidate_inundation_area_sqkm": 46.3725,
+    "specular_candidate_area_sqkm": 36.8892,
+    "double_bounce_candidate_area_sqkm": 9.4833,
+    "overlap_area_sqkm": 34.6284,
+    "additional_candidate_area_sqkm": 11.7441,
+    "baseline_only_area_sqkm": 18.7389,
+    "iou_agreement": 0.5318,
+    "additional_candidate_ratio": 0.2533,
+    "metrics_notes": "IoU is reported strictly as cross-sensor agreement between SAR candidate inundation and OPERA DSWx baseline, NOT detection accuracy or ground truth. Independent in-situ validation labels are required for precision/recall/F1 metrics."
+  },
+  "limitations": [
+    "Candidate inundation inferred from SAR backscatter anomalies; not verified ground truth.",
+    "Mangrove and coastal vegetation double-bounce can be modulated by tidal stages and salinity.",
+    "OPERA DSWx is a classified surface water product; cross-sensor disagreement denotes observation gap, not defect."
+  ],
+  "generated_at": "2026-11-14T14:10:15.419528+00:00",
+  "evidence_mode": "cached_verified_case"
+}

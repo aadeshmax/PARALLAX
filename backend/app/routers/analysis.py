@@ -19,8 +19,14 @@ router = APIRouter(prefix="/api/analysis", tags=["PARALLAX Analysis"])
 @router.get("/cases")
 def list_available_cases():
     """Lists locally available verified demonstration cases."""
+    priority = {
+        "real_event_rio_grande_do_sul": 1,
+        "mumbai_monsoon_event": 2,
+        "chennai_live_case": 3,
+        "demo_flood_case": 4
+    }
     cases = []
-    for case_dir in settings.CASES_DIR.iterdir():
+    for case_dir in sorted(settings.CASES_DIR.iterdir(), key=lambda p: priority.get(p.name, 99)):
         if case_dir.is_dir():
             manifest_file = case_dir / "manifest.json"
             if manifest_file.exists():
