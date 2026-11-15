@@ -38,9 +38,9 @@ export const AcquisitionTimeline: React.FC<AcquisitionTimelineProps> = ({
   }, [isPlaying, selectedIndex, observations.length, onSelectIndex]);
 
   return (
-    <div className="absolute bottom-4 left-3 z-20 flex flex-col pointer-events-auto">
+    <div className="flex flex-col shrink-0">
       {/* Collapsible Bar Container */}
-      <div className="flex flex-col rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden transition-all duration-300">
+      <div className="flex flex-col h-full rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden transition-all duration-300">
         {/* Header Bar */}
         <div className="flex items-center justify-between px-3.5 py-2 border-b border-midnight-border/50 bg-midnight-elevated/40 text-xs">
           <button
@@ -67,7 +67,7 @@ export const AcquisitionTimeline: React.FC<AcquisitionTimelineProps> = ({
 
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="p-1 rounded bg-midnight-accent/20 hover:bg-midnight-accent text-midnight-accent hover:text-white transition"
+                className="p-1 rounded bg-midnight-accent text-white shadow transition"
                 title={isPlaying ? 'Pause timeline playback' : 'Play timeline sequence'}
               >
                 {isPlaying ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
@@ -86,14 +86,14 @@ export const AcquisitionTimeline: React.FC<AcquisitionTimelineProps> = ({
 
         {/* Filmstrip Cards Body */}
         {isOpen && (
-          <div className="flex items-center gap-2.5 p-3">
+          <div className="flex items-center gap-2.5 p-3 flex-1">
             {observations.map((obs, idx) => {
               const isSelected = selectedIndex === idx;
               return (
                 <button
                   key={obs.id}
                   onClick={() => onSelectIndex(idx)}
-                  className={`flex flex-col w-48 rounded-xl border text-left p-2.5 transition relative overflow-hidden ${
+                  className={`flex flex-col w-44 rounded-xl border text-left p-2.5 transition relative overflow-hidden h-full justify-between ${
                     isSelected
                       ? 'bg-midnight-elevated border-midnight-accent ring-1 ring-midnight-accent shadow-lg shadow-midnight-accent/15'
                       : 'bg-midnight-panel/80 border-midnight-border/60 hover:bg-midnight-elevated/60 hover:border-midnight-border'
@@ -114,23 +114,26 @@ export const AcquisitionTimeline: React.FC<AcquisitionTimelineProps> = ({
                     ) : (
                       <Cloud className="w-5 h-5 text-midnight-secondary/40 relative z-10" />
                     )}
-                    {isSelected && (
-                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-midnight-accent text-[9px] font-bold text-white uppercase shadow">
-                        Active
+                    {/* ACTI Badge on Detection Gap or Selected */}
+                    {(obs.id === 'gap_overlay' || isSelected) && (
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-blue-600 text-[9px] font-bold text-white uppercase shadow tracking-wider">
+                        ACTI
                       </span>
                     )}
                   </div>
 
                   {/* Metadata */}
-                  <span className="font-bold text-xs text-midnight-primary leading-tight">
-                    {obs.label}
-                  </span>
-                  <span className="text-[10px] text-midnight-secondary font-mono mt-0.5">
-                    {obs.timestamp}
-                  </span>
-                  <span className="text-[10px] text-midnight-accent font-medium mt-1">
-                    {obs.sensor}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-xs text-midnight-primary leading-tight">
+                      {obs.label}
+                    </span>
+                    <span className="text-[10px] text-midnight-secondary font-mono mt-0.5 truncate">
+                      {obs.timestamp}
+                    </span>
+                    <span className={`text-[10px] font-medium mt-1 ${obs.id === 'gap_overlay' ? 'text-blue-400' : 'text-midnight-secondary'}`}>
+                      {obs.sensor}
+                    </span>
+                  </div>
                 </button>
               );
             })}

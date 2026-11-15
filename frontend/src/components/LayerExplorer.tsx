@@ -64,9 +64,13 @@ export const LayerExplorer: React.FC<LayerExplorerProps> = ({
 
           {/* Visibility Eye & Opacity Percentage */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="font-mono text-[10px] text-midnight-secondary w-7 text-right">
+            <button
+              onClick={() => setActiveOpacitySlider(activeOpacitySlider === `${group}-${key}` ? null : `${group}-${key}`)}
+              className="font-mono text-[10px] text-midnight-secondary hover:text-midnight-primary w-7 text-right transition"
+              title="Adjust opacity slider"
+            >
               {item.opacity}%
-            </span>
+            </button>
             <button
               onClick={() => onUpdateLayer(group, key, { visible: !item.visible })}
               className={`p-1 rounded hover:bg-midnight-elevated transition ${
@@ -79,8 +83,8 @@ export const LayerExplorer: React.FC<LayerExplorerProps> = ({
           </div>
         </div>
 
-        {/* Inline Opacity Slider */}
-        {item.visible && (
+        {/* Inline Opacity Slider (Only shown when toggled) */}
+        {item.visible && activeOpacitySlider === `${group}-${key}` && (
           <div className="flex items-center gap-2 mt-1 px-5">
             <input
               type="range"

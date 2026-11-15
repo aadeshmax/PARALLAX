@@ -42,13 +42,13 @@ export const App: React.FC = () => {
   const [isLayerExplorerOpen, setIsLayerExplorerOpen] = useState<boolean>(true);
   const [isAnalysisInspectorOpen, setIsAnalysisInspectorOpen] = useState<boolean>(true);
   const [isTimelineOpen, setIsTimelineOpen] = useState<boolean>(true);
-  const [selectedTimelineIndex, setSelectedTimelineIndex] = useState<number>(0);
-  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('overview');
+  const [selectedTimelineIndex, setSelectedTimelineIndex] = useState<number>(2);
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('evidence');
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('swipe');
-  const [sliderPos, setSliderPos] = useState<number>(50);
+  const [sliderPos, setSliderPos] = useState<number>(27);
   const [blendMode, setBlendMode] = useState<string>('multiply');
   const [renderMode, setRenderMode] = useState<VisualizationMode>('radar');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('Chennai City, Tamil Nadu, India');
   const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
   const [evidenceModalSection, setEvidenceModalSection] = useState<string | null>(null);
@@ -309,34 +309,35 @@ export const App: React.FC = () => {
         onOpenEvidenceModal={(sec) => setEvidenceModalSection(sec)}
       />
 
-      {/* 5. SATELLITE ACQUISITION TIMELINE (Real SAR Previews & Timestamps) */}
-      <AcquisitionTimeline
-        observations={timelineObservations}
-        selectedIndex={selectedTimelineIndex}
-        onSelectIndex={(idx) => {
-          setSelectedTimelineIndex(idx);
-          if (idx === 0) {
-            handleUpdateLayer('earthObservation', 'preEventSar', { visible: true });
-            handleUpdateLayer('earthObservation', 'postEventSar', { visible: false });
-          } else if (idx === 1) {
-            handleUpdateLayer('earthObservation', 'preEventSar', { visible: false });
-            handleUpdateLayer('earthObservation', 'postEventSar', { visible: true });
-          } else {
-            handleUpdateLayer('floodInundation', 'candidateFloodwater', { visible: true });
-          }
-        }}
-        isOpen={isTimelineOpen}
-        onToggleOpen={() => setIsTimelineOpen(!isTimelineOpen)}
-      />
+      {/* 5. UNIFIED BOTTOM DOCK (Acquisition Timeline & Scientific Analytics) */}
+      <div className="absolute bottom-3 left-3 z-20 flex items-stretch gap-3 pointer-events-auto max-w-[calc(100vw-420px)] overflow-x-auto">
+        <AcquisitionTimeline
+          observations={timelineObservations}
+          selectedIndex={selectedTimelineIndex}
+          onSelectIndex={(idx) => {
+            setSelectedTimelineIndex(idx);
+            if (idx === 0) {
+              handleUpdateLayer('earthObservation', 'preEventSar', { visible: true });
+              handleUpdateLayer('earthObservation', 'postEventSar', { visible: false });
+            } else if (idx === 1) {
+              handleUpdateLayer('earthObservation', 'preEventSar', { visible: false });
+              handleUpdateLayer('earthObservation', 'postEventSar', { visible: true });
+            } else {
+              handleUpdateLayer('floodInundation', 'candidateFloodwater', { visible: true });
+            }
+          }}
+          isOpen={isTimelineOpen}
+          onToggleOpen={() => setIsTimelineOpen(!isTimelineOpen)}
+        />
 
-      {/* 6. SCIENTIFIC ANALYTICS DRAWER & REGIONAL STATS */}
-      <ScientificAnalytics
-        metrics={metrics}
-        currentCase={currentCase}
-        isOpen={true}
-        onToggleOpen={() => {}}
-        isInspectorOpen={isAnalysisInspectorOpen}
-      />
+        <ScientificAnalytics
+          metrics={metrics}
+          currentCase={currentCase}
+          isOpen={true}
+          onToggleOpen={() => {}}
+          isInspectorOpen={isAnalysisInspectorOpen}
+        />
+      </div>
 
       {/* 7. EXPORT MODAL */}
       <ExportModal

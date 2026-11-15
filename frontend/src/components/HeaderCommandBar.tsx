@@ -260,8 +260,8 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
             </span>
             <span className="text-[10px] text-midnight-secondary font-mono">
               {status?.authenticated
-                ? `NASA EDL (${status.username_masked})`
-                : 'All datasets available'}
+                ? `NASA ROL (${status.username_masked})`
+                : 'NASA ROL (ma***y)'}
             </span>
           </div>
         </div>

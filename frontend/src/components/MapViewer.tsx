@@ -842,29 +842,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </>
       )}
 
-      {/* BOTTOM COMPARISON MODE SELECTOR */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 p-1 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl pointer-events-auto">
-        <span className="text-[10px] font-semibold text-midnight-secondary px-2 uppercase tracking-wider">
-          Comparison Mode
-        </span>
-        {(['swipe', 'side-by-side', 'temporal', 'difference'] as ComparisonMode[]).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => onSelectComparisonMode(mode)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition ${
-              comparisonMode === mode
-                ? 'bg-midnight-accent text-white shadow'
-                : 'text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated'
-            }`}
-          >
-            {mode}
-          </button>
-        ))}
-      </div>
-
       {/* RIGHT SIDE MAP NAVIGATION TOOLBAR (Dynamic offset when Inspector is open) */}
-      <div className={`absolute top-20 z-10 flex flex-col items-center gap-2 pointer-events-auto transition-all duration-300 ${
-        isInspectorOpen ? 'right-3 lg:right-[374px]' : 'right-3'
+      <div className={`absolute top-16 z-10 flex flex-col items-center gap-2 pointer-events-auto transition-all duration-300 ${
+        isInspectorOpen ? 'right-3 lg:right-[396px]' : 'right-3'
       }`}>
         {/* Basemap Switcher Dropdown */}
         <div className="relative">
@@ -966,9 +946,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM RIGHT MINIMAP INSET (Auto-hides cleanly when Analysis Inspector is open) */}
+      {/* BOTTOM RIGHT MINIMAP INSET (Auto-hides cleanly when Analysis Inspector or Timeline is open) */}
       <div className={`absolute z-10 w-28 h-24 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-none transition-all duration-300 ${
-        isInspectorOpen ? 'hidden' : 'bottom-24 right-3 hidden md:flex flex-col'
+        isInspectorOpen || isTimelineOpen ? 'hidden' : 'bottom-24 right-3 hidden md:flex flex-col'
       }`}>
         <div className="w-full h-full relative bg-slate-950/90 flex items-center justify-center">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#203247_1px,transparent_1px),linear-gradient(to_bottom,#203247_1px,transparent_1px)] bg-[size:14px_14px] opacity-30" />
@@ -978,31 +958,31 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM LEFT SCALE & COORDINATES READOUT (Dynamic offset when Timeline is open) */}
-      <div className={`absolute bottom-2 z-10 flex items-center gap-3 text-[10px] font-mono text-midnight-secondary/80 pointer-events-none transition-all duration-300 ${
-        isTimelineOpen ? 'left-3 lg:left-[640px]' : 'left-3'
-      }`}>
-        <div className="flex items-center gap-1.5">
-          <div className="w-12 h-1 border-b-2 border-l-2 border-r-2 border-midnight-secondary/60" />
-          <span>5 km</span>
-        </div>
+      {/* BOTTOM LEFT SCALE & COORDINATES READOUT (Hidden when timeline dock is active to prevent occlusion) */}
+      {!isTimelineOpen && (
+        <div className="absolute bottom-2 left-3 z-10 flex items-center gap-3 text-[10px] font-mono text-midnight-secondary/80 pointer-events-none transition-all duration-300">
+          <div className="flex items-center gap-1.5">
+            <div className="w-12 h-1 border-b-2 border-l-2 border-r-2 border-midnight-secondary/60" />
+            <span>5 km</span>
+          </div>
 
-        <div className="bg-midnight-panel/80 px-2 py-0.5 rounded border border-midnight-border/40">
-          Lat <span className="text-midnight-primary">{mouseCoords.lat}°</span> Lon{' '}
-          <span className="text-midnight-primary">{mouseCoords.lon}°</span>
-        </div>
+          <div className="bg-midnight-panel/80 px-2 py-0.5 rounded border border-midnight-border/40">
+            Lat <span className="text-midnight-primary">{mouseCoords.lat}°</span> Lon{' '}
+            <span className="text-midnight-primary">{mouseCoords.lon}°</span>
+          </div>
 
-        <button
-          onClick={() => onToggleRenderMode && onToggleRenderMode(renderMode === 'radar' ? 'scientific' : 'radar')}
-          className="bg-midnight-panel/80 hover:bg-midnight-elevated px-2 py-0.5 rounded border border-midnight-border/40 flex items-center gap-1.5 transition pointer-events-auto cursor-pointer"
-          title="Toggle Rendering Mode: Refined Weather Radar vs Scientific GIS"
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${renderMode === 'radar' ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400'}`} />
-          <span className="uppercase text-[9px] font-semibold text-midnight-secondary">
-            {renderMode === 'radar' ? 'Mode: Refined Radar' : 'Mode: Scientific GIS'}
-          </span>
-        </button>
-      </div>
+          <button
+            onClick={() => onToggleRenderMode && onToggleRenderMode(renderMode === 'radar' ? 'scientific' : 'radar')}
+            className="bg-midnight-panel/80 hover:bg-midnight-elevated px-2 py-0.5 rounded border border-midnight-border/40 flex items-center gap-1.5 transition pointer-events-auto cursor-pointer"
+            title="Toggle Rendering Mode: Refined Weather Radar vs Scientific GIS"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${renderMode === 'radar' ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span className="uppercase text-[9px] font-semibold text-midnight-secondary">
+              {renderMode === 'radar' ? 'Mode: Refined Radar' : 'Mode: Scientific GIS'}
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

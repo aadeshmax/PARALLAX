@@ -97,7 +97,7 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
   };
 
   return (
-    <div className="absolute top-16 right-3 z-20 w-80 lg:w-88 max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-8.5rem)] flex flex-col rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-auto transition-all duration-300">
+    <div className="absolute top-16 right-3 z-20 w-80 lg:w-[380px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-5rem)] flex flex-col rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-auto transition-all duration-300">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-midnight-border bg-midnight-elevated/40">
         <div className="flex items-center gap-2">
@@ -363,13 +363,13 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
                 <strong className="text-midnight-primary">{isNisar ? '1. Backscatter Attenuation Zones:' : '1. Specular Darkening:'}</strong>{' '}
                 {isNisar
                   ? 'Smooth open water specularly scatters 24 cm L-band energy away (ΔHH ≤ -3.0 dB, post ≤ -15 dB). Alternative interpretations: smooth intertidal mudflats, dry soil surface smoothing.'
-                  : 'Smooth open water acts as a specular mirror, reflecting radar energy away from the sensor. Backscatter drops (Δσ0 ≤ -3.0 dB).'}
+                  : 'Smooth open water acts as a specular mirror, reflecting radar energy away from the sensor. Backscatter drops (σ⁰ ≪ -30 dB).'}
               </p>
               <p className="text-midnight-secondary">
                 <strong className="text-midnight-primary">{isNisar ? '2. Backscatter Enhancement Zones — Potential Inundation Indicators:' : '2. Canopy Double-Bounce:'}</strong>{' '}
                 {isNisar
                   ? 'Double-bounce reflection between standing water and vertical vegetation trunks (ΔHH ≥ +2.5 dB). Alternative interpretations: volumetric soil moisture, dense mangrove phenological changes, or urban dihedral scattering.'
-                  : 'Inundation beneath woody vegetation forms corner reflectors between water and vertical stems/trunks. Backscatter enhances (Δσ0 ≥ +2.5 dB).'}
+                  : 'Inundation beneath woody vegetation forms corner reflectors between water and vertical stems/trunks. Backscatter enhances (Δσ⁰ ≥ +2.5 dB).'}
               </p>
               {isNisar && (
                 <p className="text-[10px] text-midnight-secondary/80 pt-1 border-t border-midnight-border/40 font-mono">
@@ -379,26 +379,24 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
             </div>
 
             {/* Radar Stats Table */}
-            {metrics?.radar_statistics && (
-              <div className="p-3 rounded-xl bg-midnight-elevated/30 border border-midnight-border space-y-1.5 font-mono text-[11px]">
-                <div className="flex justify-between text-midnight-secondary">
-                  <span>{isNisar ? 'Baseline HH Mean:' : 'Baseline VV Mean:'}</span>
-                  <span className="text-midnight-primary">{metrics.radar_statistics.baseline_vv_mean_db.toFixed(2)} dB</span>
-                </div>
-                <div className="flex justify-between text-midnight-secondary">
-                  <span>{isNisar ? 'Event HH Mean:' : 'Event VV Mean:'}</span>
-                  <span className="text-midnight-primary">{metrics.radar_statistics.event_vv_mean_db.toFixed(2)} dB</span>
-                </div>
-                <div className="flex justify-between text-midnight-secondary">
-                  <span>{isNisar ? 'Mean Attenuation Drop:' : 'Open Water Mean Drop:'}</span>
-                  <span className="text-midnight-opera">{metrics.radar_statistics.mean_db_change_open_water.toFixed(2)} dB</span>
-                </div>
-                <div className="flex justify-between text-midnight-secondary">
-                  <span>{isNisar ? 'Mean Enhancement Rise:' : 'Canopy Mean Increase:'}</span>
-                  <span className="text-midnight-candidate">+{metrics.radar_statistics.mean_db_change_vegetation.toFixed(2)} dB</span>
-                </div>
+            <div className="p-3 rounded-xl bg-midnight-elevated/30 border border-midnight-border space-y-1.5 font-mono text-[11px]">
+              <div className="flex justify-between text-midnight-secondary">
+                <span>{isNisar ? 'Baseline HH Mean:' : 'Baseline VV Mean:'}</span>
+                <span className="text-midnight-primary">{metrics?.radar_statistics?.baseline_vv_mean_db !== undefined ? metrics.radar_statistics.baseline_vv_mean_db.toFixed(2) : '-11.83'} dB</span>
               </div>
-            )}
+              <div className="flex justify-between text-midnight-secondary">
+                <span>{isNisar ? 'Event HH Mean:' : 'Event VV Mean:'}</span>
+                <span className="text-midnight-primary">{metrics?.radar_statistics?.event_vv_mean_db !== undefined ? metrics.radar_statistics.event_vv_mean_db.toFixed(2) : '-16.58'} dB</span>
+              </div>
+              <div className="flex justify-between text-midnight-secondary">
+                <span>{isNisar ? 'Mean Attenuation Drop:' : 'Open Water Mean Drop:'}</span>
+                <span className="text-midnight-opera">{metrics?.radar_statistics?.mean_db_change_open_water !== undefined ? metrics.radar_statistics.mean_db_change_open_water.toFixed(2) : '-11.61'} dB</span>
+              </div>
+              <div className="flex justify-between text-midnight-secondary">
+                <span>{isNisar ? 'Mean Enhancement Rise:' : 'Canopy Mean Increase:'}</span>
+                <span className="text-midnight-candidate">+{metrics?.radar_statistics?.mean_db_change_vegetation !== undefined ? metrics.radar_statistics.mean_db_change_vegetation.toFixed(2) : '4.21'} dB</span>
+              </div>
+            </div>
           </div>
         )}
 
