@@ -151,13 +151,15 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
               <div className="p-3 rounded-xl bg-midnight-elevated/50 border border-midnight-border flex flex-col">
                 <div className="flex items-center gap-1.5 text-[10px] text-midnight-secondary">
                   <span className="w-2 h-2 rounded-full bg-midnight-candidate" />
-                  <span className="truncate">{isNisar ? 'Backscatter Enhancement' : 'Candidate Floodwater'}</span>
+                  <span className="truncate" title={isNisar ? 'Backscatter Enhancement Zones — Potential Inundation Indicators' : 'Candidate Floodwater'}>
+                    {isNisar ? 'Enhancement Zones' : 'Candidate Floodwater'}
+                  </span>
                 </div>
                 <div className="text-xl font-bold font-mono text-midnight-candidate mt-1">
                   {(isNisar ? (metrics?.candidate_inundated_veg_km2 ?? 571.13) : candidateWaterKm2).toFixed(1)} <span className="text-xs font-normal text-midnight-secondary">km²</span>
                 </div>
-                <span className="text-[10px] text-midnight-candidate/90 mt-0.5">
-                  {isNisar ? 'Potential Inundation (≥ +2.5 dB)' : expansionPct}
+                <span className="text-[10px] text-midnight-candidate/90 mt-0.5 truncate" title="Backscatter Enhancement Zones — Potential Inundation Indicators">
+                  {isNisar ? 'Potential Inundation Indicators' : expansionPct}
                 </span>
               </div>
             </div>
@@ -343,7 +345,7 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
                   : 'Smooth open water acts as a specular mirror, reflecting radar energy away from the sensor. Backscatter drops (Δσ0 ≤ -3.0 dB).'}
               </p>
               <p className="text-midnight-secondary">
-                <strong className="text-midnight-primary">{isNisar ? '2. Backscatter Enhancement Zones:' : '2. Canopy Double-Bounce:'}</strong>{' '}
+                <strong className="text-midnight-primary">{isNisar ? '2. Backscatter Enhancement Zones — Potential Inundation Indicators:' : '2. Canopy Double-Bounce:'}</strong>{' '}
                 {isNisar
                   ? 'Double-bounce reflection between standing water and vertical vegetation trunks (ΔHH ≥ +2.5 dB). Alternative interpretations: volumetric soil moisture, dense mangrove phenological changes, or urban dihedral scattering.'
                   : 'Inundation beneath woody vegetation forms corner reflectors between water and vertical stems/trunks. Backscatter enhances (Δσ0 ≥ +2.5 dB).'}
@@ -397,7 +399,7 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
               <div className="flex items-center justify-between p-2 rounded-lg bg-midnight-elevated/40 border border-midnight-border">
                 <div className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 rounded bg-midnight-candidate shadow" />
-                  <span>{isNisar ? 'Backscatter Enhancement Zones (≥ +2.5 dB)' : 'Candidate Floodwater'}</span>
+                  <span>{isNisar ? 'Backscatter Enhancement Zones — Potential Inundation Indicators (≥ +2.5 dB)' : 'Candidate Floodwater'}</span>
                 </div>
                 <span className="font-mono text-midnight-secondary">#FFB020</span>
               </div>

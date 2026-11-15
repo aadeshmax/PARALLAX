@@ -48,7 +48,7 @@ In accordance with remote sensing scientific rigor, PARALLAX strictly avoids dec
 
 1. **Backscatter Enhancement Zones ($\Delta HH \ge +2.5\text{ dB}$):**
    - **Reported Metric:** `571.13 km²`
-   - **Label:** *Potential Inundation Candidates (Sub-Canopy Double-Bounce)*
+   - **Label:** *Backscatter Enhancement Zones — Potential Inundation Indicators*
    - **Primary Hypothesis:** Inundated vegetation where standing water underneath tree trunks creates a dihedral corner reflector, redirecting incident microwave energy directly back toward the satellite sensor.
    - **Alternative Physical Causes:**
      - Volumetric soil moisture surge in top 5–10 cm following torrential monsoon rain.

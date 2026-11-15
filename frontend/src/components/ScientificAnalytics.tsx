@@ -205,7 +205,7 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
                   {isNisar ? (
                     <>
                       Potential Water Attenuation (≤ -3 dB): <strong className="text-midnight-opera">{(metrics?.open_water_km2 ?? 2.85).toFixed(2)} km²</strong>.{' '}
-                      Potential Canopy Inundation (≥ +2.5 dB): <strong className="text-midnight-candidate">{(metrics?.candidate_inundated_veg_km2 ?? 571.13).toFixed(2)} km²</strong>.{' '}
+                      Backscatter Enhancement Zones — Potential Inundation Indicators (≥ +2.5 dB): <strong className="text-midnight-candidate">{(metrics?.candidate_inundated_veg_km2 ?? 571.13).toFixed(2)} km²</strong>.{' '}
                       Flight Cycle: <strong>Track 113, Frame 011 (Ascending pass, 22 Jun – 04 Jul 2026)</strong>.
                     </>
                   ) : (

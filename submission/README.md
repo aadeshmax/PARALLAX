@@ -90,7 +90,7 @@ The **NASA-ISRO SAR (NISAR)** mission operates a 24 cm L-band radar (1.2575 GHz)
 - **Sensor:** NASA-ISRO SAR (NISAR) L-band (1.2575 GHz, 24 cm wavelength)
 - **Granules:** `NISAR_L2_PR_GCOV_001_172_056_A_20260721T...` and `NISAR_L2_PR_GCOV_001_172_056_A_20260802T...` (12-day orbital repeat cycle)
 - **Analyzed AOI:** 2,753.30 km² across the Mumbai Metropolitan Region and Thane Creek Mangrove Sanctuary
-- **Potential Inundation Candidates (Backscatter Enhancement):** **571.13 km²** exhibiting $\Delta HH \ge +2.5\text{ dB}$. Sub-canopy double-bounce mechanism concentrated across mangrove clusters and wetland fringes.
+- **Backscatter Enhancement Zones — Potential Inundation Indicators:** **571.13 km²** exhibiting $\Delta HH \ge +2.5\text{ dB}$. Sub-canopy double-bounce mechanism concentrated across mangrove clusters and wetland fringes.
 - **Potential Surface Water Changes (Backscatter Attenuation):** **2.85 km²** exhibiting $\Delta HH \le -3.0\text{ dB}$ and $\sigma^0_{\text{post}} \le -15.0\text{ dB}$. Specular reflection from newly opened ponding surfaces and tidal flats.
 - **Backscatter Dynamics:** Valid pixels partitioned into 5,745 enhancement clusters vs 4,185 attenuation clusters.
 

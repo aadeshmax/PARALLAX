@@ -83,7 +83,7 @@
   "scientific_limitations": [
     "Provisional product maturity level: Flight data acquired July 2026, radiometric calibration validated.",
     "12-day temporal change reflects coupled hydrological, tidal, and surface roughness dynamics.",
-    "Positive backscatter enhancement (ΔHH >= +2.5 dB) represents candidate anomalies; potential physical causes include woody vegetation double-bounce, volumetric soil moisture, mangrove phenology, and urban dihedral scattering.",
+    "Positive backscatter enhancement (ΔHH >= +2.5 dB) represents Backscatter Enhancement Zones — Potential Inundation Indicators; potential physical causes include woody vegetation double-bounce, volumetric soil moisture, mangrove phenology, and urban dihedral scattering.",
     "Negative backscatter attenuation (ΔHH <= -3.0 dB) represents potential surface water change, intertidal mudflat variation, or smooth saturated soil.",
     "Direct subtraction of C-band from L-band is scientifically invalid; cross-sensor synthesis requires coincident acquisitions and physical transfer models."
   ],

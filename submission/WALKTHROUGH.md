@@ -46,7 +46,7 @@ Open your browser to:
    - The map smoothly flies over the Mumbai Metropolitan Region and Thane Creek.
 
 2. **Inspect the Analysis Inspector (Right Sidebar):**
-   - **Potential Inundation Candidates:** Observe **`571.13 km²`** (+2.5 dB enhancement).
+   - **Backscatter Enhancement Zones — Potential Inundation Indicators:** Observe **`571.13 km²`** (+2.5 dB enhancement).
    - **Potential Surface Water Change:** Observe **`2.85 km²`** (-3.0 dB attenuation).
    - **Sensor Parameter:** Note `NISAR L-Band (24cm) | Pass 172 | Track 056`.
    - **Physical Evidence:** Note the explicit classification of sub-canopy double-bounce corner reflection vs specular surface water.
