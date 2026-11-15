@@ -153,6 +153,20 @@ export const App: React.FC = () => {
 
   const currentCase = cases.find((c) => c.case_id === selectedCaseId) || cases[0] || null;
 
+  // Compute dynamic center tile URL for timeline thumbnails
+  const getCenterTile = (layer: string) => {
+    if (!currentCase?.center || currentCase.center.length < 2) {
+      return `/data/cases/${selectedCaseId}/tiles/${layer}/12/2959/1895.png`;
+    }
+    const [lon, lat] = currentCase.center;
+    const z = 12;
+    const n = 1 << z;
+    const x = Math.floor(((lon + 180) / 360) * n);
+    const latRad = (lat * Math.PI) / 180;
+    const y = Math.floor(((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2) * n);
+    return `/data/cases/${selectedCaseId}/tiles/${layer}/${z}/${x}/${y}.png`;
+  };
+
   // Real Timeline Observations from case manifest scenes
   const scenes = currentCase?.scenes || [];
   const timelineObservations: TimelineObservation[] = [
@@ -165,7 +179,7 @@ export const App: React.FC = () => {
           ? 'Nov 24, 2024 00:32 UTC'
           : 'Apr 26, 2024 22:07 UTC',
       sensor: scenes[0]?.polarization ? `Sentinel-1 (${scenes[0].polarization})` : 'Sentinel-1 (SAR)',
-      thumbnailUrl: `/data/cases/${selectedCaseId}/tiles/pre_sar/12/1463/2403.png`
+      thumbnailUrl: getCenterTile('pre_sar')
     },
     {
       id: 'event',
@@ -176,14 +190,14 @@ export const App: React.FC = () => {
           ? 'Dec 06, 2024 00:32 UTC'
           : 'May 08, 2024 22:07 UTC',
       sensor: scenes[1]?.polarization ? `Sentinel-1 (${scenes[1].polarization})` : 'Sentinel-1 (SAR)',
-      thumbnailUrl: `/data/cases/${selectedCaseId}/tiles/post_sar/12/1463/2403.png`
+      thumbnailUrl: getCenterTile('post_sar')
     },
     {
       id: 'gap_overlay',
       label: 'Detection Gap',
       timestamp: currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap',
       sensor: 'PARALLAX Analysis',
-      thumbnailUrl: `/data/cases/${selectedCaseId}/tiles/gap_overlay/12/1463/2403.png`
+      thumbnailUrl: getCenterTile('gap_overlay')
     }
   ];
 
