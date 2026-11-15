@@ -103,7 +103,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
                 setShowSearchSuggestions(true);
               }}
               onFocus={() => setShowSearchSuggestions(true)}
-              placeholder="Search location..."
+              placeholder="Search city, river basin, or landmark..."
               className="bg-transparent text-midnight-primary placeholder:text-midnight-secondary/60 focus:outline-none w-full text-xs"
             />
           </div>

@@ -56,16 +56,16 @@ export const App: React.FC = () => {
   // Layer Groups State matching the approved design
   const [layerGroups, setLayerGroups] = useState<LayerGroupsState>({
     earthObservation: {
-      satelliteBasemap: { id: 'sat_basemap', name: 'Satellite basemap', visible: true, opacity: 85 },
-      preEventSar: { id: 'pre_sar', name: 'Pre-event SAR (24 Nov)', visible: true, opacity: 80 },
-      postEventSar: { id: 'post_sar', name: 'During-event SAR (06 Dec)', visible: true, opacity: 80 }
+      satelliteBasemap: { id: 'sat_basemap', name: 'Satellite Photo Basemap', visible: true, opacity: 85 },
+      preEventSar: { id: 'pre_sar', name: 'Before Flood (24 Nov)', visible: false, opacity: 80 },
+      postEventSar: { id: 'post_sar', name: 'Peak Flood Scan (06 Dec)', visible: true, opacity: 80 }
     },
     floodInundation: {
-      operaMappedWater: { id: 'opera_water', name: 'OPERA mapped water', visible: true, opacity: 75, color: '#328CFF' },
-      candidateFloodwater: { id: 'candidate_water', name: 'Candidate floodwater', visible: true, opacity: 75, color: '#FFB020' },
-      permanentWater: { id: 'permanent_water', name: 'Permanent water', visible: false, opacity: 100, color: '#14B8A6' },
-      sarBackscatterChanges: { id: 'sar_changes', name: 'SAR backscatter changes (ΔdB)', visible: false, opacity: 70, color: '#A78BFA' },
-      uncertaintyNoData: { id: 'uncertainty', name: 'Uncertain / No data', visible: false, opacity: 40, color: '#64748B' }
+      operaMappedWater: { id: 'opera_water', name: 'Known Surface Water', visible: true, opacity: 75, color: '#328CFF' },
+      candidateFloodwater: { id: 'candidate_water', name: 'Hidden Water Under Trees', visible: true, opacity: 75, color: '#FFB020' },
+      permanentWater: { id: 'permanent_water', name: 'Normal Lakes & Reservoirs', visible: false, opacity: 100, color: '#14B8A6' },
+      sarBackscatterChanges: { id: 'sar_changes', name: 'Radar Ground Change (ΔdB)', visible: false, opacity: 70, color: '#A78BFA' },
+      uncertaintyNoData: { id: 'uncertainty', name: 'Uncertain / No Data', visible: false, opacity: 40, color: '#64748B' }
     },
     spatialContext: {
       studyAreaBoundary: { id: 'boundary', name: 'Study area boundary', visible: true, opacity: 100, color: '#E85A9E' },
@@ -201,35 +201,35 @@ export const App: React.FC = () => {
   const timelineObservations: TimelineObservation[] = [
     {
       id: 'pre_event',
-      label: isNisar ? 'Observation A' : 'Pre-event',
+      label: isNisar ? 'Observation A' : (selectedCaseId === 'chennai_live_case' ? 'Before Cyclone' : 'Pre-event Baseline'),
       timestamp: scenes[0]?.acquisition_timestamp
         ? new Date(scenes[0].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
         : selectedCaseId === 'chennai_live_case'
-          ? 'Nov 24, 2024 00:32 UTC'
+          ? 'Nov 24, 2024 · Dry Baseline'
           : isNisar
             ? 'Jun 22, 2026 00:34 UTC'
             : 'Apr 26, 2024 22:07 UTC',
-      sensor: isNisar ? `NISAR (${scenes[0]?.polarization || 'HH'})` : (scenes[0]?.polarization ? `Sentinel-1 (${scenes[0].polarization})` : 'Sentinel-1 (SAR)'),
+      sensor: isNisar ? `NISAR (${scenes[0]?.polarization || 'HH'})` : 'Sentinel-1 C-SAR',
       thumbnailUrl: getCenterTile('pre_sar')
     },
     {
       id: 'event',
-      label: isNisar ? 'Observation B' : 'During-Event',
+      label: isNisar ? 'Observation B' : (selectedCaseId === 'chennai_live_case' ? 'Peak Cyclone' : 'Cyclone Landfall'),
       timestamp: scenes[1]?.acquisition_timestamp
         ? new Date(scenes[1].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
         : selectedCaseId === 'chennai_live_case'
-          ? 'Dec 06, 2024 00:32 UTC'
+          ? 'Dec 06, 2024 · Max Inundation'
           : isNisar
             ? 'Jul 04, 2026 00:34 UTC'
             : 'May 08, 2024 22:07 UTC',
-      sensor: isNisar ? `NISAR (${scenes[1]?.polarization || 'HH'})` : (scenes[1]?.polarization ? `Sentinel-1 (${scenes[1].polarization})` : 'Sentinel-1 (SAR)'),
+      sensor: isNisar ? `NISAR (${scenes[1]?.polarization || 'HH'})` : 'Sentinel-1 C-SAR',
       thumbnailUrl: getCenterTile('post_sar')
     },
     {
       id: 'gap_overlay',
-      label: isNisar ? 'Radar Change (ΔHH)' : 'Detection Gap',
-      timestamp: isNisar ? '12-day NISAR Temporal Difference' : (currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap'),
-      sensor: isNisar ? 'NISAR L-band Analysis' : 'PARALLAX Analysis',
+      label: isNisar ? 'Radar Change (ΔHH)' : 'Hidden Water Found',
+      timestamp: isNisar ? '12-day NISAR Temporal Difference' : (selectedCaseId === 'chennai_live_case' ? '+17.8 km² Extra Water' : (currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap')),
+      sensor: isNisar ? 'NISAR L-band Analysis' : 'PARALLAX Radar Intelligence',
       thumbnailUrl: getCenterTile(isNisar ? 'diff_db' : 'gap_overlay')
     }
   ];

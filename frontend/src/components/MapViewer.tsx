@@ -809,13 +809,15 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       {comparisonMode === 'swipe' && (
         <>
           {/* Top Pill Labels */}
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl pointer-events-none">
-            <span className="text-xs font-semibold text-midnight-opera px-2 py-0.5 rounded">
-              OPERA Baseline
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl pointer-events-none">
+            <span className="text-xs font-semibold text-midnight-opera px-2 py-0.5 rounded flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-midnight-opera" />
+              Standard Water Map
             </span>
             <span className="text-midnight-secondary text-xs">|</span>
-            <span className="text-xs font-semibold text-midnight-candidate px-2 py-0.5 rounded">
-              PARALLAX Analysis
+            <span className="text-xs font-semibold text-midnight-candidate px-2 py-0.5 rounded flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-midnight-candidate" />
+              Hidden Floodwater Uncovered
             </span>
           </div>
 
@@ -827,15 +829,20 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             {/* Vertical Line */}
             <div className="w-0.5 h-full bg-white/70 shadow-[0_0_12px_rgba(255,255,255,0.7)]" />
 
-            {/* Drag Handle */}
+            {/* Drag Handle with Helper Tooltip Badge */}
             <div
               onMouseDown={handleMouseDown}
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-midnight-panel border-2 border-white shadow-2xl flex items-center justify-center text-white cursor-ew-resize hover:scale-110 active:scale-95 transition"
+              className="group absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-midnight-panel border-2 border-white shadow-2xl flex items-center justify-center text-white cursor-ew-resize hover:scale-110 active:scale-95 transition"
               title="Drag comparison slider"
             >
               <div className="flex items-center gap-0.5 text-[10px] font-bold">
                 <span>‹</span>
                 <span>›</span>
+              </div>
+
+              {/* Floating Helper Pill */}
+              <div className="absolute top-full mt-2 -translate-x-1/2 left-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-slate-900/90 border border-slate-700/60 text-[9px] font-semibold text-slate-200 pointer-events-none opacity-0 group-hover:opacity-100 transition shadow-lg">
+                ‹ Drag to compare before vs after ›
               </div>
             </div>
           </div>
