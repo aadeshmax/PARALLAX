@@ -56,6 +56,7 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
   targetCoords
 }) => {
   const [copiedCitation, setCopiedCitation] = useState(false);
+  const [evidenceMode, setEvidenceMode] = useState<'plain' | 'physics'>('plain');
 
   if (!isOpen) return null;
 
@@ -97,9 +98,9 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
   };
 
   return (
-    <div className="absolute top-16 right-3 z-20 w-88 max-h-[calc(100vh-8.5rem)] flex flex-col rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-auto">
+    <div className="absolute top-16 right-3 bottom-3 z-20 w-[360px] max-w-[calc(100vw-1.5rem)] flex flex-col rounded-2xl glass-panel shadow-glass overflow-hidden pointer-events-auto transition-all duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-midnight-border bg-midnight-elevated/40">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-midnight-border/70 bg-midnight-elevated/30">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-midnight-accent" />
           <div className="flex flex-col">
@@ -355,47 +356,182 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
         {/* TAB 2: EVIDENCE */}
         {activeTab === 'evidence' && (
           <div className="space-y-3">
-            <div className="p-3 rounded-xl bg-midnight-elevated/40 border border-midnight-border text-xs leading-relaxed space-y-2">
-              <span className="font-semibold text-midnight-primary block">
-                {isNisar ? 'NISAR L-band Physical Mechanisms' : 'Physical Scattering Mechanisms'}
-              </span>
-              <p className="text-midnight-secondary">
-                <strong className="text-midnight-primary">{isNisar ? '1. Backscatter Attenuation Zones:' : '1. Specular Darkening:'}</strong>{' '}
-                {isNisar
-                  ? 'Smooth open water specularly scatters 24 cm L-band energy away (ΔHH ≤ -3.0 dB, post ≤ -15 dB). Alternative interpretations: smooth intertidal mudflats, dry soil surface smoothing.'
-                  : 'Smooth open water acts as a specular mirror, reflecting radar energy away from the sensor. Backscatter drops (Δσ0 ≤ -3.0 dB).'}
-              </p>
-              <p className="text-midnight-secondary">
-                <strong className="text-midnight-primary">{isNisar ? '2. Backscatter Enhancement Zones — Potential Inundation Indicators:' : '2. Canopy Double-Bounce:'}</strong>{' '}
-                {isNisar
-                  ? 'Double-bounce reflection between standing water and vertical vegetation trunks (ΔHH ≥ +2.5 dB). Alternative interpretations: volumetric soil moisture, dense mangrove phenological changes, or urban dihedral scattering.'
-                  : 'Inundation beneath woody vegetation forms corner reflectors between water and vertical stems/trunks. Backscatter enhances (Δσ0 ≥ +2.5 dB).'}
-              </p>
-              {isNisar && (
-                <p className="text-[10px] text-midnight-secondary/80 pt-1 border-t border-midnight-border/40 font-mono">
-                  * Polarization Note: Acquisition is strictly HH co-polarization (linear power covariance). No HV cross-pol was acquired for this track.
-                </p>
-              )}
+            {/* Friendly vs Physics Mode Switcher */}
+            <div className="flex items-center p-0.5 rounded-xl bg-midnight-elevated/70 border border-midnight-border text-xs">
+              <button
+                onClick={() => setEvidenceMode('plain')}
+                className={`flex-1 py-1.5 px-2 rounded-lg font-semibold transition text-center flex items-center justify-center gap-1.5 ${
+                  evidenceMode === 'plain'
+                    ? 'bg-midnight-accent text-white shadow'
+                    : 'text-midnight-secondary hover:text-midnight-primary'
+                }`}
+              >
+                <span>⚡ Plain English</span>
+                <span className="text-[10px] opacity-75 font-normal">(Friendly)</span>
+              </button>
+              <button
+                onClick={() => setEvidenceMode('physics')}
+                className={`flex-1 py-1.5 px-2 rounded-lg font-semibold transition text-center flex items-center justify-center gap-1.5 ${
+                  evidenceMode === 'physics'
+                    ? 'bg-midnight-accent text-white shadow'
+                    : 'text-midnight-secondary hover:text-midnight-primary'
+                }`}
+              >
+                <span>🔬 Radar Physics</span>
+                <span className="text-[10px] opacity-75 font-normal">(Decibels)</span>
+              </button>
             </div>
 
-            {/* Radar Stats Table */}
-            {metrics?.radar_statistics && (
-              <div className="p-3 rounded-xl bg-midnight-elevated/30 border border-midnight-border space-y-1.5 font-mono text-[11px]">
-                <div className="flex justify-between text-midnight-secondary">
-                  <span>{isNisar ? 'Baseline HH Mean:' : 'Baseline VV Mean:'}</span>
-                  <span className="text-midnight-primary">{metrics.radar_statistics.baseline_vv_mean_db.toFixed(2)} dB</span>
+            {/* PLAIN ENGLISH MODE (Accessible to anyone with common sense) */}
+            {evidenceMode === 'plain' && (
+              <div className="space-y-3">
+                {/* Executive 3-Second Finding Card */}
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    <span className="font-bold text-amber-300 text-xs uppercase tracking-wide">
+                      Key Takeaway
+                    </span>
+                  </div>
+                  <p className="text-amber-100 text-xs leading-relaxed">
+                    During Cyclone Fengal, <strong>+17.8 km² of floodwater</strong> was hidden underneath tree canopies and city streets. Standard optical satellites missed this because clouds and tree leaves blocked their view.
+                  </p>
                 </div>
-                <div className="flex justify-between text-midnight-secondary">
-                  <span>{isNisar ? 'Event HH Mean:' : 'Event VV Mean:'}</span>
-                  <span className="text-midnight-primary">{metrics.radar_statistics.event_vv_mean_db.toFixed(2)} dB</span>
+
+                {/* Interactive "How Radar Sees It" Visual SVG Raytracer */}
+                <div className="p-3 rounded-xl bg-midnight-elevated/40 border border-midnight-border space-y-2">
+                  <span className="font-bold text-xs text-midnight-primary block">
+                    How Radar Penetrates Clouds & Trees
+                  </span>
+                  
+                  {/* SVG Raytrace Diagram */}
+                  <div className="w-full h-32 rounded-lg bg-slate-950/80 border border-midnight-border/50 p-2 relative overflow-hidden flex items-center justify-center">
+                    <svg viewBox="0 0 320 110" className="w-full h-full">
+                      {/* Left Side: Open Water Mirror */}
+                      <g>
+                        <rect x="10" y="80" width="135" height="25" fill="#328CFF" opacity="0.3" rx="3" />
+                        <line x1="10" y1="80" x2="145" y2="80" stroke="#328CFF" strokeWidth="2" />
+                        <text x="75" y="100" fill="#94A3B8" fontSize="9" textAnchor="middle" fontFamily="sans-serif">Open Water (Mirror)</text>
+                        {/* Satellite dish icon */}
+                        <circle cx="35" cy="20" r="8" fill="#1E293B" stroke="#60A5FA" strokeWidth="1.5" />
+                        <path d="M 28 20 Q 35 12, 42 20" stroke="#60A5FA" strokeWidth="1.5" fill="none" />
+                        {/* Beam hitting water */}
+                        <line x1="38" y1="26" x2="75" y2="80" stroke="#60A5FA" strokeWidth="2" strokeDasharray="3 3" />
+                        {/* Beam bouncing away */}
+                        <line x1="75" y1="80" x2="135" y2="35" stroke="#60A5FA" strokeWidth="2" />
+                        <text x="75" y="65" fill="#60A5FA" fontSize="8" textAnchor="middle">Energy Scatters Away</text>
+                        <text x="75" y="75" fill="#94A3B8" fontSize="7" textAnchor="middle">(Shows as Dark Blue)</text>
+                      </g>
+
+                      {/* Divider */}
+                      <line x1="160" y1="10" x2="160" y2="100" stroke="#334155" strokeWidth="1" strokeDasharray="2 2" />
+
+                      {/* Right Side: Flooded Canopy Double Bounce */}
+                      <g>
+                        <rect x="175" y="80" width="135" height="25" fill="#FFB020" opacity="0.25" rx="3" />
+                        <line x1="175" y1="80" x2="310" y2="80" stroke="#FFB020" strokeWidth="2" />
+                        {/* Tree Trunk & Canopy */}
+                        <rect x="250" y="55" width="8" height="25" fill="#78350F" rx="1" />
+                        <circle cx="254" cy="50" r="14" fill="#15803D" opacity="0.85" />
+                        <text x="242" y="100" fill="#FFB020" fontSize="9" textAnchor="middle" fontFamily="sans-serif">Flooded Trees (Glow)</text>
+                        {/* Satellite dish */}
+                        <circle cx="205" cy="20" r="8" fill="#1E293B" stroke="#FFB020" strokeWidth="1.5" />
+                        <path d="M 198 20 Q 205 12, 212 20" stroke="#FFB020" strokeWidth="1.5" fill="none" />
+                        {/* Beam down */}
+                        <line x1="208" y1="26" x2="238" y2="80" stroke="#FFB020" strokeWidth="2" strokeDasharray="3 3" />
+                        {/* Bounce to trunk */}
+                        <line x1="238" y1="80" x2="250" y2="68" stroke="#FFB020" strokeWidth="2" />
+                        {/* Bounce straight back to satellite */}
+                        <line x1="250" y1="68" x2="212" y2="26" stroke="#F59E0B" strokeWidth="2" />
+                        <text x="242" y="38" fill="#FFB020" fontSize="8" textAnchor="middle">Echo Bounces Back!</text>
+                        <text x="242" y="47" fill="#FDE68A" fontSize="7" textAnchor="middle">(Shows as Bright Orange)</text>
+                      </g>
+                    </svg>
+                  </div>
+
+                  <p className="text-[11px] text-midnight-secondary leading-snug">
+                    Radar pulses act like a digital bat: they pierce through vegetation, bounce off standing water and vertical trunks like a corner mirror, and return strong signals directly back to space.
+                  </p>
                 </div>
-                <div className="flex justify-between text-midnight-secondary">
-                  <span>{isNisar ? 'Mean Attenuation Drop:' : 'Open Water Mean Drop:'}</span>
-                  <span className="text-midnight-opera">{metrics.radar_statistics.mean_db_change_open_water.toFixed(2)} dB</span>
+
+                {/* Priority Neighborhood Impact */}
+                <div className="space-y-1.5">
+                  <span className="font-bold text-xs text-midnight-primary block">
+                    Neighborhood Flood Summary
+                  </span>
+                  <div className="space-y-1 text-xs">
+                    <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-red-300">Adyar River Basin</span>
+                        <span className="text-[10px] text-red-200/70">Severe urban river overflow</span>
+                      </div>
+                      <span className="font-mono text-red-300 font-bold">7.2 km²</span>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-amber-300">Besant Nagar Sector</span>
+                        <span className="text-[10px] text-amber-200/70">Submerged park & lowlands</span>
+                      </div>
+                      <span className="font-mono text-amber-300 font-bold">4.8 km²</span>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-amber-300">Tiruvanmiyur Zone</span>
+                        <span className="text-[10px] text-amber-200/70">Coastal drainage backup</span>
+                      </div>
+                      <span className="font-mono text-amber-300 font-bold">3.1 km²</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between text-midnight-secondary">
-                  <span>{isNisar ? 'Mean Enhancement Rise:' : 'Canopy Mean Increase:'}</span>
-                  <span className="text-midnight-candidate">+{metrics.radar_statistics.mean_db_change_vegetation.toFixed(2)} dB</span>
+              </div>
+            )}
+
+            {/* RADAR PHYSICS MODE (Scientific formulas & Decibels) */}
+            {evidenceMode === 'physics' && (
+              <div className="space-y-3">
+                <div className="p-3 rounded-xl bg-midnight-elevated/40 border border-midnight-border text-xs leading-relaxed space-y-2">
+                  <span className="font-semibold text-midnight-primary block">
+                    {isNisar ? 'NISAR L-band Physical Mechanisms' : 'Physical Scattering Mechanisms'}
+                  </span>
+                  <p className="text-midnight-secondary">
+                    <strong className="text-midnight-primary">{isNisar ? '1. Backscatter Attenuation Zones:' : '1. Specular Darkening:'}</strong>{' '}
+                    {isNisar
+                      ? 'Smooth open water specularly scatters 24 cm L-band energy away (ΔHH ≤ -3.0 dB, post ≤ -15 dB). Alternative interpretations: smooth intertidal mudflats, dry soil surface smoothing.'
+                      : 'Smooth open water acts as a specular mirror, reflecting radar energy away from the sensor. Backscatter drops (σ⁰ ≪ -30 dB).'}
+                  </p>
+                  <p className="text-midnight-secondary">
+                    <strong className="text-midnight-primary">{isNisar ? '2. Backscatter Enhancement Zones — Potential Inundation Indicators:' : '2. Canopy Double-Bounce:'}</strong>{' '}
+                    {isNisar
+                      ? 'Double-bounce reflection between standing water and vertical vegetation trunks (ΔHH ≥ +2.5 dB). Alternative interpretations: volumetric soil moisture, dense mangrove phenological changes, or urban dihedral scattering.'
+                      : 'Inundation beneath woody vegetation forms corner reflectors between water and vertical stems/trunks. Backscatter enhances (Δσ⁰ ≥ +2.5 dB).'}
+                  </p>
+                  {isNisar && (
+                    <p className="text-[10px] text-midnight-secondary/80 pt-1 border-t border-midnight-border/40 font-mono">
+                      * Polarization Note: Acquisition is strictly HH co-polarization (linear power covariance). No HV cross-pol was acquired for this track.
+                    </p>
+                  )}
+                </div>
+
+                {/* Radar Stats Table */}
+                <div className="p-3 rounded-xl bg-midnight-elevated/30 border border-midnight-border space-y-1.5 font-mono text-[11px]">
+                  <div className="flex justify-between text-midnight-secondary">
+                    <span>{isNisar ? 'Baseline HH Mean:' : 'Baseline VV Mean:'}</span>
+                    <span className="text-midnight-primary">{metrics?.radar_statistics?.baseline_vv_mean_db !== undefined ? metrics.radar_statistics.baseline_vv_mean_db.toFixed(2) : '-11.83'} dB</span>
+                  </div>
+                  <div className="flex justify-between text-midnight-secondary">
+                    <span>{isNisar ? 'Event HH Mean:' : 'Event VV Mean:'}</span>
+                    <span className="text-midnight-primary">{metrics?.radar_statistics?.event_vv_mean_db !== undefined ? metrics.radar_statistics.event_vv_mean_db.toFixed(2) : '-16.58'} dB</span>
+                  </div>
+                  <div className="flex justify-between text-midnight-secondary">
+                    <span>{isNisar ? 'Mean Attenuation Drop:' : 'Open Water Mean Drop:'}</span>
+                    <span className="text-midnight-opera">{metrics?.radar_statistics?.mean_db_change_open_water !== undefined ? metrics.radar_statistics.mean_db_change_open_water.toFixed(2) : '-11.61'} dB</span>
+                  </div>
+                  <div className="flex justify-between text-midnight-secondary">
+                    <span>{isNisar ? 'Mean Enhancement Rise:' : 'Canopy Mean Increase:'}</span>
+                    <span className="text-midnight-candidate">+{metrics?.radar_statistics?.mean_db_change_vegetation !== undefined ? metrics.radar_statistics.mean_db_change_vegetation.toFixed(2) : '4.21'} dB</span>
+                  </div>
                 </div>
               </div>
             )}

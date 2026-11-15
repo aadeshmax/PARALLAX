@@ -64,9 +64,13 @@ export const LayerExplorer: React.FC<LayerExplorerProps> = ({
 
           {/* Visibility Eye & Opacity Percentage */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="font-mono text-[10px] text-midnight-secondary w-7 text-right">
+            <button
+              onClick={() => setActiveOpacitySlider(activeOpacitySlider === `${group}-${key}` ? null : `${group}-${key}`)}
+              className="font-mono text-[10px] text-midnight-secondary hover:text-midnight-primary w-7 text-right transition"
+              title="Adjust opacity slider"
+            >
               {item.opacity}%
-            </span>
+            </button>
             <button
               onClick={() => onUpdateLayer(group, key, { visible: !item.visible })}
               className={`p-1 rounded hover:bg-midnight-elevated transition ${
@@ -79,8 +83,8 @@ export const LayerExplorer: React.FC<LayerExplorerProps> = ({
           </div>
         </div>
 
-        {/* Inline Opacity Slider */}
-        {item.visible && (
+        {/* Inline Opacity Slider (Only shown when toggled) */}
+        {item.visible && activeOpacitySlider === `${group}-${key}` && (
           <div className="flex items-center gap-2 mt-1 px-5">
             <input
               type="range"
@@ -97,9 +101,9 @@ export const LayerExplorer: React.FC<LayerExplorerProps> = ({
   };
 
   return (
-    <div className="absolute top-16 left-3 z-20 w-80 max-h-[calc(100vh-8.5rem)] flex flex-col rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-auto">
+    <div className="absolute top-16 left-3 bottom-[190px] z-20 w-72 flex flex-col rounded-2xl glass-panel shadow-glass overflow-hidden pointer-events-auto transition-all duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-midnight-border bg-midnight-elevated/40">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-midnight-border/70 bg-midnight-elevated/30">
         <div className="flex items-center gap-2">
           <LayersIcon className="w-4 h-4 text-midnight-accent" />
           <h2 className="font-bold text-xs text-midnight-primary tracking-wide">

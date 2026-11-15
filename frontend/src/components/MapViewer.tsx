@@ -39,6 +39,8 @@ interface MapViewerProps {
   renderMode?: VisualizationMode;
   onToggleRenderMode?: (mode: VisualizationMode) => void;
   blendMode?: string;
+  isInspectorOpen?: boolean;
+  isTimelineOpen?: boolean;
 }
 
 // Field validation staging sites per case
@@ -83,7 +85,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   onSelectEvidence,
   renderMode = 'radar',
   onToggleRenderMode,
-  blendMode = 'multiply'
+  blendMode = 'multiply',
+  isInspectorOpen = false,
+  isTimelineOpen = false
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -804,13 +808,15 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       {/* SWIPE COMPARISON OVERLAY (When in Swipe Mode) */}
       {comparisonMode === 'swipe' && (
         <>
-          {/* Top Pill Labels */}
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl pointer-events-none">
-            <span className="text-xs font-semibold text-midnight-opera px-2 py-0.5 rounded">
+          {/* Top Pill Labels (Compact & Non-Crowding) */}
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full glass-pill shadow-pill pointer-events-none">
+            <span className="text-[11px] font-semibold text-midnight-opera flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-midnight-opera shadow-glow-cyan" />
               OPERA Baseline
             </span>
             <span className="text-midnight-secondary text-xs">|</span>
-            <span className="text-xs font-semibold text-midnight-candidate px-2 py-0.5 rounded">
+            <span className="text-[11px] font-semibold text-midnight-candidate flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-midnight-candidate shadow-glow-amber" />
               PARALLAX Analysis
             </span>
           </div>
@@ -823,48 +829,35 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             {/* Vertical Line */}
             <div className="w-0.5 h-full bg-white/70 shadow-[0_0_12px_rgba(255,255,255,0.7)]" />
 
-            {/* Drag Handle */}
+            {/* Drag Handle with Helper Tooltip Badge */}
             <div
               onMouseDown={handleMouseDown}
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-midnight-panel border-2 border-white shadow-2xl flex items-center justify-center text-white cursor-ew-resize hover:scale-110 active:scale-95 transition"
+              className="group absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-midnight-panel border-2 border-white shadow-2xl flex items-center justify-center text-white cursor-ew-resize hover:scale-110 active:scale-95 transition"
               title="Drag comparison slider"
             >
               <div className="flex items-center gap-0.5 text-[10px] font-bold">
                 <span>‹</span>
                 <span>›</span>
               </div>
+
+              {/* Floating Helper Pill */}
+              <div className="absolute top-full mt-2 -translate-x-1/2 left-1/2 whitespace-nowrap px-2 py-1 rounded-md bg-slate-900/90 border border-slate-700/60 text-[9px] font-semibold text-slate-200 pointer-events-none opacity-0 group-hover:opacity-100 transition shadow-lg">
+                ‹ Drag to compare before vs after ›
+              </div>
             </div>
           </div>
         </>
       )}
 
-      {/* BOTTOM COMPARISON MODE SELECTOR */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 p-1 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl pointer-events-auto">
-        <span className="text-[10px] font-semibold text-midnight-secondary px-2 uppercase tracking-wider">
-          Comparison Mode
-        </span>
-        {(['swipe', 'side-by-side', 'temporal', 'difference'] as ComparisonMode[]).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => onSelectComparisonMode(mode)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition ${
-              comparisonMode === mode
-                ? 'bg-midnight-accent text-white shadow'
-                : 'text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated'
-            }`}
-          >
-            {mode}
-          </button>
-        ))}
-      </div>
-
-      {/* RIGHT SIDE MAP NAVIGATION TOOLBAR */}
-      <div className="absolute top-20 right-3 z-10 flex flex-col items-center gap-2 pointer-events-auto">
+      {/* RIGHT SIDE MAP NAVIGATION TOOLBAR (Dynamic offset when Inspector is open) */}
+      <div className={`absolute top-16 z-10 flex flex-col items-center gap-2 pointer-events-auto transition-all duration-300 ${
+        isInspectorOpen ? 'right-3 lg:right-[384px]' : 'right-3'
+      }`}>
         {/* Basemap Switcher Dropdown */}
         <div className="relative">
           <button
             onClick={() => setShowBasemapMenu(!showBasemapMenu)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border text-xs text-midnight-primary hover:border-midnight-accent shadow-2xl transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl glass-pill shadow-pill text-xs text-midnight-primary hover:border-midnight-accent transition"
             title="Switch Basemap Style"
           >
             <Globe className="w-3.5 h-3.5 text-midnight-accent" />
@@ -873,7 +866,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           </button>
 
           {showBasemapMenu && (
-            <div className="absolute right-0 top-full mt-1 w-28 bg-midnight-panel/95 backdrop-blur-md border border-midnight-border rounded-xl shadow-2xl py-1 z-30 text-xs">
+            <div className="absolute right-0 top-full mt-1 w-28 glass-panel shadow-glass rounded-xl py-1 z-30 text-xs">
               {(['satellite', 'dark'] as const).map((type) => (
                 <button
                   key={type}
@@ -893,7 +886,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
 
         {/* Navigation Controls Pill */}
-        <div className="flex flex-col rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden divide-y divide-midnight-border">
+        <div className="flex flex-col rounded-xl glass-pill shadow-pill overflow-hidden divide-y divide-midnight-border/70">
           <button
             onClick={() => mapRef.current?.zoomIn()}
             className="p-2 text-midnight-secondary hover:text-midnight-primary hover:bg-midnight-elevated transition"
@@ -960,8 +953,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM RIGHT MINIMAP INSET */}
-      <div className="absolute bottom-24 right-3 z-10 w-28 h-24 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-none hidden md:flex flex-col">
+      {/* BOTTOM RIGHT MINIMAP INSET (Auto-hides cleanly when Analysis Inspector or Timeline is open) */}
+      <div className={`absolute z-10 w-28 h-24 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-none transition-all duration-300 ${
+        isInspectorOpen || isTimelineOpen ? 'hidden' : 'bottom-24 right-3 hidden md:flex flex-col'
+      }`}>
         <div className="w-full h-full relative bg-slate-950/90 flex items-center justify-center">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#203247_1px,transparent_1px),linear-gradient(to_bottom,#203247_1px,transparent_1px)] bg-[size:14px_14px] opacity-30" />
           <div className="w-10 h-8 rounded border border-midnight-boundary bg-midnight-boundary/10 flex items-center justify-center">
@@ -970,29 +965,31 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM LEFT SCALE & COORDINATES READOUT */}
-      <div className="absolute bottom-2 left-3 z-10 flex items-center gap-4 text-[10px] font-mono text-midnight-secondary/80 pointer-events-none">
-        <div className="flex items-center gap-1.5">
-          <div className="w-12 h-1 border-b-2 border-l-2 border-r-2 border-midnight-secondary/60" />
-          <span>5 km</span>
-        </div>
+      {/* BOTTOM LEFT SCALE & COORDINATES READOUT (Hidden when timeline dock is active to prevent occlusion) */}
+      {!isTimelineOpen && (
+        <div className="absolute bottom-2 left-3 z-10 flex items-center gap-3 text-[10px] font-mono text-midnight-secondary/80 pointer-events-none transition-all duration-300">
+          <div className="flex items-center gap-1.5">
+            <div className="w-12 h-1 border-b-2 border-l-2 border-r-2 border-midnight-secondary/60" />
+            <span>5 km</span>
+          </div>
 
-        <div className="bg-midnight-panel/80 px-2 py-0.5 rounded border border-midnight-border/40">
-          Lat <span className="text-midnight-primary">{mouseCoords.lat}°</span> Lon{' '}
-          <span className="text-midnight-primary">{mouseCoords.lon}°</span>
-        </div>
+          <div className="bg-midnight-panel/80 px-2 py-0.5 rounded border border-midnight-border/40">
+            Lat <span className="text-midnight-primary">{mouseCoords.lat}°</span> Lon{' '}
+            <span className="text-midnight-primary">{mouseCoords.lon}°</span>
+          </div>
 
-        <button
-          onClick={() => onToggleRenderMode && onToggleRenderMode(renderMode === 'radar' ? 'scientific' : 'radar')}
-          className="bg-midnight-panel/80 hover:bg-midnight-elevated px-2 py-0.5 rounded border border-midnight-border/40 flex items-center gap-1.5 transition pointer-events-auto cursor-pointer"
-          title="Toggle Rendering Mode: Refined Weather Radar vs Scientific GIS"
-        >
-          <span className={`w-1.5 h-1.5 rounded-full ${renderMode === 'radar' ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400'}`} />
-          <span className="uppercase text-[9px] font-semibold text-midnight-secondary">
-            {renderMode === 'radar' ? 'Mode: Refined Radar' : 'Mode: Scientific GIS'}
-          </span>
-        </button>
-      </div>
+          <button
+            onClick={() => onToggleRenderMode && onToggleRenderMode(renderMode === 'radar' ? 'scientific' : 'radar')}
+            className="bg-midnight-panel/80 hover:bg-midnight-elevated px-2 py-0.5 rounded border border-midnight-border/40 flex items-center gap-1.5 transition pointer-events-auto cursor-pointer"
+            title="Toggle Rendering Mode: Refined Weather Radar vs Scientific GIS"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${renderMode === 'radar' ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span className="uppercase text-[9px] font-semibold text-midnight-secondary">
+              {renderMode === 'radar' ? 'Mode: Refined Radar' : 'Mode: Scientific GIS'}
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

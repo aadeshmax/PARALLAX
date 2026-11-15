@@ -42,13 +42,13 @@ export const App: React.FC = () => {
   const [isLayerExplorerOpen, setIsLayerExplorerOpen] = useState<boolean>(true);
   const [isAnalysisInspectorOpen, setIsAnalysisInspectorOpen] = useState<boolean>(true);
   const [isTimelineOpen, setIsTimelineOpen] = useState<boolean>(true);
-  const [selectedTimelineIndex, setSelectedTimelineIndex] = useState<number>(0);
-  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('overview');
+  const [selectedTimelineIndex, setSelectedTimelineIndex] = useState<number>(2);
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('evidence');
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('swipe');
-  const [sliderPos, setSliderPos] = useState<number>(50);
+  const [sliderPos, setSliderPos] = useState<number>(27);
   const [blendMode, setBlendMode] = useState<string>('multiply');
   const [renderMode, setRenderMode] = useState<VisualizationMode>('radar');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('Chennai City, Tamil Nadu, India');
   const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
   const [evidenceModalSection, setEvidenceModalSection] = useState<string | null>(null);
@@ -56,16 +56,16 @@ export const App: React.FC = () => {
   // Layer Groups State matching the approved design
   const [layerGroups, setLayerGroups] = useState<LayerGroupsState>({
     earthObservation: {
-      satelliteBasemap: { id: 'sat_basemap', name: 'Satellite basemap', visible: true, opacity: 85 },
-      preEventSar: { id: 'pre_sar', name: 'Pre-event SAR (24 Nov)', visible: true, opacity: 80 },
-      postEventSar: { id: 'post_sar', name: 'During-event SAR (06 Dec)', visible: true, opacity: 80 }
+      satelliteBasemap: { id: 'sat_basemap', name: 'Satellite Photo Basemap', visible: true, opacity: 85 },
+      preEventSar: { id: 'pre_sar', name: 'Before Flood (24 Nov)', visible: false, opacity: 80 },
+      postEventSar: { id: 'post_sar', name: 'Peak Flood Scan (06 Dec)', visible: true, opacity: 80 }
     },
     floodInundation: {
-      operaMappedWater: { id: 'opera_water', name: 'OPERA mapped water', visible: true, opacity: 75, color: '#328CFF' },
-      candidateFloodwater: { id: 'candidate_water', name: 'Candidate floodwater', visible: true, opacity: 75, color: '#FFB020' },
-      permanentWater: { id: 'permanent_water', name: 'Permanent water', visible: false, opacity: 100, color: '#14B8A6' },
-      sarBackscatterChanges: { id: 'sar_changes', name: 'SAR backscatter changes (ΔdB)', visible: false, opacity: 70, color: '#A78BFA' },
-      uncertaintyNoData: { id: 'uncertainty', name: 'Uncertain / No data', visible: false, opacity: 40, color: '#64748B' }
+      operaMappedWater: { id: 'opera_water', name: 'Known Surface Water', visible: true, opacity: 75, color: '#328CFF' },
+      candidateFloodwater: { id: 'candidate_water', name: 'Hidden Water Under Trees', visible: true, opacity: 75, color: '#FFB020' },
+      permanentWater: { id: 'permanent_water', name: 'Normal Lakes & Reservoirs', visible: false, opacity: 100, color: '#14B8A6' },
+      sarBackscatterChanges: { id: 'sar_changes', name: 'Radar Ground Change (ΔdB)', visible: false, opacity: 70, color: '#A78BFA' },
+      uncertaintyNoData: { id: 'uncertainty', name: 'Uncertain / No Data', visible: false, opacity: 40, color: '#64748B' }
     },
     spatialContext: {
       studyAreaBoundary: { id: 'boundary', name: 'Study area boundary', visible: true, opacity: 100, color: '#E85A9E' },
@@ -201,35 +201,35 @@ export const App: React.FC = () => {
   const timelineObservations: TimelineObservation[] = [
     {
       id: 'pre_event',
-      label: isNisar ? 'Observation A' : 'Pre-event',
+      label: isNisar ? 'Observation A' : (selectedCaseId === 'chennai_live_case' ? 'Before Cyclone' : 'Pre-event Baseline'),
       timestamp: scenes[0]?.acquisition_timestamp
         ? new Date(scenes[0].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
         : selectedCaseId === 'chennai_live_case'
-          ? 'Nov 24, 2024 00:32 UTC'
+          ? 'Nov 24, 2024 · Dry Baseline'
           : isNisar
             ? 'Jun 22, 2026 00:34 UTC'
             : 'Apr 26, 2024 22:07 UTC',
-      sensor: isNisar ? `NISAR (${scenes[0]?.polarization || 'HH'})` : (scenes[0]?.polarization ? `Sentinel-1 (${scenes[0].polarization})` : 'Sentinel-1 (SAR)'),
+      sensor: isNisar ? `NISAR (${scenes[0]?.polarization || 'HH'})` : 'Sentinel-1 C-SAR',
       thumbnailUrl: getCenterTile('pre_sar')
     },
     {
       id: 'event',
-      label: isNisar ? 'Observation B' : 'During-Event',
+      label: isNisar ? 'Observation B' : (selectedCaseId === 'chennai_live_case' ? 'Peak Cyclone' : 'Cyclone Landfall'),
       timestamp: scenes[1]?.acquisition_timestamp
         ? new Date(scenes[1].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
         : selectedCaseId === 'chennai_live_case'
-          ? 'Dec 06, 2024 00:32 UTC'
+          ? 'Dec 06, 2024 · Max Inundation'
           : isNisar
             ? 'Jul 04, 2026 00:34 UTC'
             : 'May 08, 2024 22:07 UTC',
-      sensor: isNisar ? `NISAR (${scenes[1]?.polarization || 'HH'})` : (scenes[1]?.polarization ? `Sentinel-1 (${scenes[1].polarization})` : 'Sentinel-1 (SAR)'),
+      sensor: isNisar ? `NISAR (${scenes[1]?.polarization || 'HH'})` : 'Sentinel-1 C-SAR',
       thumbnailUrl: getCenterTile('post_sar')
     },
     {
       id: 'gap_overlay',
-      label: isNisar ? 'Radar Change (ΔHH)' : 'Detection Gap',
-      timestamp: isNisar ? '12-day NISAR Temporal Difference' : (currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap'),
-      sensor: isNisar ? 'NISAR L-band Analysis' : 'PARALLAX Analysis',
+      label: isNisar ? 'Radar Change (ΔHH)' : 'Hidden Water Found',
+      timestamp: isNisar ? '12-day NISAR Temporal Difference' : (selectedCaseId === 'chennai_live_case' ? '+17.8 km² Extra Water' : (currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap')),
+      sensor: isNisar ? 'NISAR L-band Analysis' : 'PARALLAX Radar Intelligence',
       thumbnailUrl: getCenterTile(isNisar ? 'diff_db' : 'gap_overlay')
     }
   ];
@@ -268,6 +268,8 @@ export const App: React.FC = () => {
           renderMode={renderMode}
           onToggleRenderMode={setRenderMode}
           blendMode={blendMode}
+          isInspectorOpen={isAnalysisInspectorOpen}
+          isTimelineOpen={isTimelineOpen}
           onSelectEvidence={(ev) => {
             setIsAnalysisInspectorOpen(true);
             setInspectorTab('evidence');
@@ -307,33 +309,37 @@ export const App: React.FC = () => {
         onOpenEvidenceModal={(sec) => setEvidenceModalSection(sec)}
       />
 
-      {/* 5. SATELLITE ACQUISITION TIMELINE (Real SAR Previews & Timestamps) */}
-      <AcquisitionTimeline
-        observations={timelineObservations}
-        selectedIndex={selectedTimelineIndex}
-        onSelectIndex={(idx) => {
-          setSelectedTimelineIndex(idx);
-          if (idx === 0) {
-            handleUpdateLayer('earthObservation', 'preEventSar', { visible: true });
-            handleUpdateLayer('earthObservation', 'postEventSar', { visible: false });
-          } else if (idx === 1) {
-            handleUpdateLayer('earthObservation', 'preEventSar', { visible: false });
-            handleUpdateLayer('earthObservation', 'postEventSar', { visible: true });
-          } else {
-            handleUpdateLayer('floodInundation', 'candidateFloodwater', { visible: true });
-          }
-        }}
-        isOpen={isTimelineOpen}
-        onToggleOpen={() => setIsTimelineOpen(!isTimelineOpen)}
-      />
+      {/* 5. UNIFIED BOTTOM DOCK (Acquisition Timeline & Scientific Analytics) */}
+      <div className={`absolute bottom-3 left-3 z-20 flex items-stretch gap-2.5 pointer-events-auto transition-all duration-300 ${
+        isAnalysisInspectorOpen ? 'max-w-[calc(100vw-390px)]' : 'max-w-[calc(100vw-24px)]'
+      } overflow-x-auto h-[168px]`}>
+        <AcquisitionTimeline
+          observations={timelineObservations}
+          selectedIndex={selectedTimelineIndex}
+          onSelectIndex={(idx) => {
+            setSelectedTimelineIndex(idx);
+            if (idx === 0) {
+              handleUpdateLayer('earthObservation', 'preEventSar', { visible: true });
+              handleUpdateLayer('earthObservation', 'postEventSar', { visible: false });
+            } else if (idx === 1) {
+              handleUpdateLayer('earthObservation', 'preEventSar', { visible: false });
+              handleUpdateLayer('earthObservation', 'postEventSar', { visible: true });
+            } else {
+              handleUpdateLayer('floodInundation', 'candidateFloodwater', { visible: true });
+            }
+          }}
+          isOpen={isTimelineOpen}
+          onToggleOpen={() => setIsTimelineOpen(!isTimelineOpen)}
+        />
 
-      {/* 6. SCIENTIFIC ANALYTICS DRAWER & REGIONAL STATS */}
-      <ScientificAnalytics
-        metrics={metrics}
-        currentCase={currentCase}
-        isOpen={true}
-        onToggleOpen={() => {}}
-      />
+        <ScientificAnalytics
+          metrics={metrics}
+          currentCase={currentCase}
+          isOpen={true}
+          onToggleOpen={() => {}}
+          isInspectorOpen={isAnalysisInspectorOpen}
+        />
+      </div>
 
       {/* 7. EXPORT MODAL */}
       <ExportModal

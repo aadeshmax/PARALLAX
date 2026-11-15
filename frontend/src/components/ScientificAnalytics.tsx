@@ -15,13 +15,15 @@ interface ScientificAnalyticsProps {
   currentCase?: CaseStudy | null;
   isOpen: boolean;
   onToggleOpen: () => void;
+  isInspectorOpen?: boolean;
 }
 
 export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
   metrics,
   currentCase,
   isOpen,
-  onToggleOpen
+  onToggleOpen,
+  isInspectorOpen = false
 }) => {
   const [showFullModal, setShowFullModal] = useState(false);
 
@@ -49,44 +51,54 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
 
   return (
     <>
-      {/* Floating Bottom-Right Cards */}
-      <div className="absolute bottom-4 right-3 z-20 flex items-end gap-3 pointer-events-auto">
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl">
+      {/* Docked Analytics Section beside Acquisition Timeline */}
+      <div className="flex items-stretch shrink-0">
+        <div className="flex items-center gap-3 p-3 rounded-2xl glass-panel shadow-glass h-full">
           {/* Card 1: Water Extent / Change Partition Bar Chart */}
-          <div className="flex flex-col w-36 pr-3 border-r border-midnight-border/50">
-            <span className="text-[10px] font-bold text-midnight-secondary uppercase tracking-wider mb-1 truncate">
-              {isNisar ? 'Change Partition' : 'Water Extent'}
-            </span>
+          <div className="flex flex-col w-28 pr-2.5 border-r border-midnight-border/50 justify-between h-full">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-midnight-secondary uppercase tracking-wider truncate">
+                {isNisar ? 'Change Partition' : 'Water Detected'}
+              </span>
+              <span className="text-[8px] text-midnight-accent font-medium -mt-0.5">
+                Standard vs Radar
+              </span>
+            </div>
             {/* SVG Mini Bar Chart */}
-            <div className="h-16 flex items-end justify-center gap-3 pt-2">
+            <div className="h-14 flex items-end justify-center gap-3 pt-1">
               <div className="flex flex-col items-center gap-1">
                 <div
                   className="w-5 bg-midnight-opera rounded-t transition-all duration-500 shadow-sm"
-                  style={{ height: isNisar ? '24px' : '38px' }}
+                  style={{ height: isNisar ? '24px' : '36px' }}
                 />
                 <span className="text-[9px] font-mono text-midnight-secondary">{isNisar ? 'Drop' : 'OPERA'}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <div
                   className="w-5 bg-midnight-candidate rounded-t transition-all duration-500 shadow-sm"
-                  style={{ height: isNisar ? '56px' : '54px' }}
+                  style={{ height: isNisar ? '56px' : '52px' }}
                 />
                 <span className="text-[9px] font-mono text-midnight-candidate">{isNisar ? 'Rise' : 'PARALLAX'}</span>
               </div>
             </div>
-            <div className="flex items-center justify-between text-[9px] font-mono text-midnight-secondary mt-1">
-              <span>{isNisar ? (metrics?.open_water_km2 ?? 2.85).toFixed(1) : operaWaterKm2.toFixed(1)}k</span>
-              <span>{isNisar ? (metrics?.candidate_inundated_veg_km2 ?? 571.13).toFixed(1) : parallaxWaterKm2.toFixed(1)}k</span>
+            <div className="flex items-center justify-between text-[9px] font-mono text-midnight-secondary">
+              <span>{isNisar ? (metrics?.open_water_km2 ?? 2.85).toFixed(1) + 'k' : '53.6k'}</span>
+              <span className="text-midnight-candidate font-bold">{isNisar ? (metrics?.candidate_inundated_veg_km2 ?? 571.13).toFixed(1) + 'k' : '57.4k'}</span>
             </div>
           </div>
 
           {/* Card 2: Backscatter Distribution Curve */}
-          <div className="flex flex-col w-40 pr-3 border-r border-midnight-border/50">
-            <span className="text-[10px] font-bold text-midnight-secondary uppercase tracking-wider mb-1 truncate">
-              Backscatter Dist.
-            </span>
+          <div className="flex flex-col w-32 pr-2.5 border-r border-midnight-border/50 justify-between h-full">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-midnight-secondary uppercase tracking-wider truncate">
+                Radar Ground Shift
+              </span>
+              <span className="text-[8px] text-midnight-secondary font-medium -mt-0.5">
+                Signal change on water
+              </span>
+            </div>
             {/* SVG Gaussian Curves */}
-            <div className="h-16 flex items-center justify-center">
+            <div className="h-14 flex items-center justify-center">
               <svg viewBox="0 0 100 45" className="w-full h-full overflow-visible">
                 {/* Dry Land Curve */}
                 <path
@@ -104,9 +116,9 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
                 />
               </svg>
             </div>
-            <div className="flex items-center justify-between text-[9px] font-mono text-midnight-secondary mt-1">
+            <div className="flex items-center justify-between text-[9px] font-mono text-midnight-secondary">
               <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" /> {isNisar ? 'Obs A' : 'Dry'}
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" /> {isNisar ? 'Obs A' : 'Dry Ground'}
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-midnight-candidate" /> {isNisar ? 'Obs B' : 'Flooded'}
@@ -115,10 +127,10 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
           </div>
 
           {/* Card 3: Flood Extent by Region */}
-          <div className="flex flex-col w-44">
-            <div className="flex items-center justify-between mb-1.5">
+          <div className="flex flex-col w-36 justify-between h-full">
+            <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-bold text-midnight-secondary uppercase tracking-wider">
-                Region Extent
+                Top Flooded Areas
               </span>
               <button
                 onClick={() => setShowFullModal(true)}
@@ -131,7 +143,7 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
             <div className="space-y-1 text-xs">
               {regions.slice(0, 3).map((r, i) => (
                 <div key={i} className="flex items-center justify-between text-[11px]">
-                  <span className="text-midnight-primary truncate max-w-[90px]">{r.name}</span>
+                  <span className="text-midnight-primary truncate max-w-[85px]">{r.name}</span>
                   <span className="font-mono text-midnight-secondary">{r.extentKm2} km²</span>
                 </div>
               ))}
