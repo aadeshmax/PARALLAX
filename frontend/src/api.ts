@@ -2,6 +2,17 @@ import { EarthdataStatus, DatasetInfo, AnalysisMetrics, GranuleMetadata, CaseStu
 
 const API_BASE = '/api';
 
+export async function fetchHealth(): Promise<{ status: string; earthdata_configured: boolean; demo_scenes_ready: boolean }> {
+  const res = await fetch('/health');
+  if (!res.ok) throw new Error('Failed to fetch health');
+  return res.json();
+}
+
+export async function fetchReadiness(): Promise<any> {
+  const res = await fetch('/readiness');
+  return res.json();
+}
+
 export async function fetchEarthdataStatus(): Promise<EarthdataStatus> {
   const res = await fetch(`${API_BASE}/nasa/status`);
   if (!res.ok) throw new Error('Failed to fetch Earthdata status');
@@ -41,22 +52,41 @@ export async function searchGranules(
   return res.json();
 }
 
-export async function runProcess(caseId: string = 'demo_flood_case'): Promise<AnalysisMetrics> {
+export async function runProcess(
+  caseId: string = 'chennai_live_case',
+  thresholds?: { darkening?: number; brightening?: number }
+): Promise<AnalysisMetrics> {
+  const body: any = { case_id: caseId };
+  if (thresholds?.darkening !== undefined) body.darkening_threshold_db = thresholds.darkening;
+  if (thresholds?.brightening !== undefined) body.brightening_threshold_db = thresholds.brightening;
+
   const res = await fetch(`${API_BASE}/nasa/process`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ case_id: caseId })
+    body: JSON.stringify(body)
   });
   if (!res.ok) throw new Error('Processing failed');
   return res.json();
 }
 
-export async function compareAnalysis(caseId: string = 'demo_flood_case'): Promise<any> {
+export async function compareAnalysis(caseId: string = 'chennai_live_case'): Promise<any> {
   const res = await fetch(`${API_BASE}/analysis/compare`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ case_id: caseId })
   });
   if (!res.ok) throw new Error('Comparison failed');
+  return res.json();
+}
+
+export async function fetchMetrics(analysisId: string): Promise<AnalysisMetrics> {
+  const res = await fetch(`${API_BASE}/analysis/${analysisId}/metrics`);
+  if (!res.ok) throw new Error('Failed to fetch metrics');
+  return res.json();
+}
+
+export async function fetchResults(analysisId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/analysis/${analysisId}/results`);
+  if (!res.ok) throw new Error('Failed to fetch results');
   return res.json();
 }

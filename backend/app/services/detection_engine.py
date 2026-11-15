@@ -389,7 +389,7 @@ class DetectionEngine:
 
             # Sub-pixel topological contour smoothing (eliminates 30m grid stair-stepping)
             try:
-                poly_smoothed = poly.buffer(8.0, resolution=4).buffer(-8.0, resolution=4).simplify(6.0, preserve_topology=True)
+                poly_smoothed = poly.buffer(8.0, quad_segs=4).buffer(-8.0, quad_segs=4).simplify(6.0, preserve_topology=True)
                 if poly_smoothed.is_empty or not poly_smoothed.is_valid:
                     poly_smoothed = poly.simplify(10.0, preserve_topology=True)
                 if poly_smoothed.is_empty or not poly_smoothed.is_valid:

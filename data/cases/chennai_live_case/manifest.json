@@ -37,6 +37,46 @@
     "granule_id": "OPERA_L3_DSWx-S1_T44PMV_20241206T003214Z_v1.0",
     "source_url": "https://podaac.jpl.nasa.gov/OPERA"
   },
+  "pre_event": {
+    "granule_id": "OPERA_L2_RTC-S1_T092-196459-IW1_20241124T003215Z_20241124T055234Z_S1A_30_v1.0",
+    "acquisition_date": "2024-11-24T00:32:15Z",
+    "sensor": "Sentinel-1A C-SAR",
+    "polarizations": [
+      "VV",
+      "VH"
+    ],
+    "files": {
+      "vv": "pre_rtc_vv.tif",
+      "vh": "pre_rtc_vh.tif"
+    }
+  },
+  "post_event": {
+    "granule_id": "OPERA_L2_RTC-S1_T092-196459-IW1_20241206T003214Z_20241206T043030Z_S1A_30_v1.0",
+    "acquisition_date": "2024-12-06T00:32:14Z",
+    "sensor": "Sentinel-1A C-SAR",
+    "polarizations": [
+      "VV",
+      "VH"
+    ],
+    "files": {
+      "vv": "post_rtc_vv.tif",
+      "vh": "post_rtc_vh.tif"
+    }
+  },
+  "dswx": {
+    "granule_id": "OPERA_L3_DSWx-S1_T44PMV_20241206T003214Z_20241206T232104Z_S1A_30_v1.0",
+    "acquisition_date": "2024-12-06T00:32:14Z",
+    "files": {
+      "wtr": "opera_dswx_aligned.tif"
+    }
+  },
+  "provenance": {
+    "source": "NASA JPL OPERA Project",
+    "archive": "NASA Alaska Satellite Facility (ASF) / PO.DAAC",
+    "verified": true,
+    "demonstration_mode": false,
+    "data_label": "live_nasa_earthdata"
+  },
   "land_cover_source": "Copernicus / Dynamic World 10m Coastal Land Cover",
   "preprocessing": {
     "resampling_continuous": "bilinear",

@@ -109,5 +109,59 @@ export interface CaseStudy {
     acquisition_timestamp?: string;
     polarization?: string;
   }>;
+  sensor?: {
+    platform?: string;
+    instrument?: string;
+    center_frequency_ghz?: number;
+    wavelength_cm?: number;
+    product_type?: string;
+    product_maturity?: string;
+    [key: string]: any;
+  };
   reference_product?: any;
+}
+
+export type ComparisonMode = 'swipe' | 'side-by-side' | 'temporal' | 'difference';
+export type VisualizationMode = 'radar' | 'scientific';
+export type InspectorTab = 'overview' | 'evidence' | 'symbology' | 'provenance';
+export type TopTool = 'area' | 'measure' | 'layers' | 'compare' | null;
+
+export interface LayerStateItem {
+  id: string;
+  name: string;
+  visible: boolean;
+  opacity: number; // 0 to 100
+  color?: string;
+  disabled?: boolean;
+  badge?: string;
+}
+
+export interface LayerGroupsState {
+  earthObservation: {
+    satelliteBasemap: LayerStateItem;
+    preEventSar: LayerStateItem;
+    postEventSar: LayerStateItem;
+  };
+  floodInundation: {
+    operaMappedWater: LayerStateItem;
+    candidateFloodwater: LayerStateItem;
+    permanentWater: LayerStateItem;
+    sarBackscatterChanges: LayerStateItem;
+    uncertaintyNoData: LayerStateItem;
+  };
+  spatialContext: {
+    studyAreaBoundary: LayerStateItem;
+    roads: LayerStateItem;
+    waterBodies: LayerStateItem;
+    administrativeBoundaries: LayerStateItem;
+  };
+}
+
+export interface TimelineObservation {
+  id: string;
+  label: string;
+  timestamp: string;
+  sensor: string;
+  thumbnailUrl?: string;
+  granuleId?: string;
 }

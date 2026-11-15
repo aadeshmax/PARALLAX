@@ -1,42 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
-import { Sidebar } from './components/Sidebar';
+import { HeaderCommandBar } from './components/HeaderCommandBar';
 import { MapViewer } from './components/MapViewer';
-import { MetricsPanel } from './components/MetricsPanel';
-import { CitationModal } from './components/CitationModal';
+import { LayerExplorer } from './components/LayerExplorer';
+import { AnalysisInspector } from './components/AnalysisInspector';
+import { AcquisitionTimeline } from './components/AcquisitionTimeline';
+import { ScientificAnalytics } from './components/ScientificAnalytics';
+import { ExportModal } from './components/ExportModal';
+import { EvidenceModal } from './components/EvidenceModal';
 import {
   fetchEarthdataStatus,
   fetchDatasets,
   fetchCases,
   runProcess
 } from './api';
-import { EarthdataStatus, DatasetInfo, CaseStudy, AnalysisMetrics, GranuleMetadata } from './types';
+import {
+  EarthdataStatus,
+  DatasetInfo,
+  CaseStudy,
+  AnalysisMetrics,
+  ComparisonMode,
+  InspectorTab,
+  TopTool,
+  LayerGroupsState,
+  LayerStateItem,
+  TimelineObservation,
+  VisualizationMode
+} from './types';
 
 export const App: React.FC = () => {
+  // Backend & Metadata State
   const [status, setStatus] = useState<EarthdataStatus | null>(null);
   const [datasets, setDatasets] = useState<DatasetInfo[]>([]);
   const [cases, setCases] = useState<CaseStudy[]>([]);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>('real_event_rio_grande_do_sul');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>('chennai_live_case');
   const [metrics, setMetrics] = useState<AnalysisMetrics | null>(null);
   const [geojsonData, setGeojsonData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [isCitationOpen, setIsCitationOpen] = useState<boolean>(false);
+
+  // UI Interactive States
+  const [activeTool, setActiveTool] = useState<TopTool>(null);
+  const [isLayerExplorerOpen, setIsLayerExplorerOpen] = useState<boolean>(true);
+  const [isAnalysisInspectorOpen, setIsAnalysisInspectorOpen] = useState<boolean>(true);
+  const [isTimelineOpen, setIsTimelineOpen] = useState<boolean>(true);
+  const [selectedTimelineIndex, setSelectedTimelineIndex] = useState<number>(0);
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('overview');
+  const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('swipe');
   const [sliderPos, setSliderPos] = useState<number>(50);
+  const [blendMode, setBlendMode] = useState<string>('multiply');
+  const [renderMode, setRenderMode] = useState<VisualizationMode>('radar');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
+  const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  const [evidenceModalSection, setEvidenceModalSection] = useState<string | null>(null);
 
-  const [layers, setLayers] = useState({
-    showOperaWater: true,
-    showInundatedVeg: true,
-    showOpenWater: true,
-    showCrossSensorGap: true,
-    showCompareSlider: false
+  // Layer Groups State matching the approved design
+  const [layerGroups, setLayerGroups] = useState<LayerGroupsState>({
+    earthObservation: {
+      satelliteBasemap: { id: 'sat_basemap', name: 'Satellite basemap', visible: true, opacity: 85 },
+      preEventSar: { id: 'pre_sar', name: 'Pre-event SAR (24 Nov)', visible: true, opacity: 80 },
+      postEventSar: { id: 'post_sar', name: 'During-event SAR (06 Dec)', visible: true, opacity: 80 }
+    },
+    floodInundation: {
+      operaMappedWater: { id: 'opera_water', name: 'OPERA mapped water', visible: true, opacity: 75, color: '#328CFF' },
+      candidateFloodwater: { id: 'candidate_water', name: 'Candidate floodwater', visible: true, opacity: 75, color: '#FFB020' },
+      permanentWater: { id: 'permanent_water', name: 'Permanent water', visible: false, opacity: 100, color: '#14B8A6' },
+      sarBackscatterChanges: { id: 'sar_changes', name: 'SAR backscatter changes (ΔdB)', visible: false, opacity: 70, color: '#A78BFA' },
+      uncertaintyNoData: { id: 'uncertainty', name: 'Uncertain / No data', visible: false, opacity: 40, color: '#64748B' }
+    },
+    spatialContext: {
+      studyAreaBoundary: { id: 'boundary', name: 'Study area boundary', visible: true, opacity: 100, color: '#E85A9E' },
+      roads: { id: 'roads', name: 'Roads & Place Labels', visible: true, opacity: 85 },
+      waterBodies: { id: 'water_bodies', name: 'Water bodies', visible: true, opacity: 80, color: '#38BDF8' },
+      administrativeBoundaries: { id: 'admin_bounds', name: 'Administrative boundaries', visible: false, opacity: 40 }
+    }
   });
 
-  const [thresholds, setThresholds] = useState({
-    darkening: -3.0,
-    brightening: 2.5
-  });
-
-  // Initial Data Fetch
+  // Initial Fetch
   useEffect(() => {
     async function init() {
       try {
@@ -49,27 +88,23 @@ export const App: React.FC = () => {
         if (ds) setDatasets(ds);
         if (cs && cs.length > 0) {
           setCases(cs);
-          const initial = cs.find(c => c.case_id === 'real_event_rio_grande_do_sul') || cs[0];
-          setSelectedCaseId(initial.case_id);
+          const hasChennai = cs.some((c) => c.case_id === 'chennai_live_case');
+          setSelectedCaseId(hasChennai ? 'chennai_live_case' : cs[0].case_id);
         }
       } catch (err) {
-        console.error("Initialization error:", err);
+        console.error('Initialization error:', err);
       }
     }
     init();
   }, []);
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
-  const [isMetricsOpen, setIsMetricsOpen] = useState<boolean>(true);
-
-  // Execute processing whenever selected case or threshold changes
+  // Execute processing whenever selected case changes
   const executeAnalysis = async (caseId: string = selectedCaseId) => {
     setLoading(true);
     try {
       const res = await runProcess(caseId);
       setMetrics(res);
 
-      // Fetch the generated GeoJSON
       if (res.layer_urls?.geojson) {
         const geoRes = await fetch(res.layer_urls.geojson);
         if (geoRes.ok) {
@@ -78,130 +113,245 @@ export const App: React.FC = () => {
         }
       }
     } catch (err) {
-      console.error("Analysis execution error:", err);
+      console.error('Analysis execution error:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    executeAnalysis(selectedCaseId);
+    if (selectedCaseId) {
+      executeAnalysis(selectedCaseId);
+      const isNisar = selectedCaseId === 'mumbai_nisar_2026';
+      setLayerGroups((prev) => ({
+        ...prev,
+        earthObservation: {
+          ...prev.earthObservation,
+          preEventSar: {
+            ...prev.earthObservation.preEventSar,
+            name: isNisar ? 'Observation A (22 Jun 2026)' : 'Pre-event SAR (24 Nov)'
+          },
+          postEventSar: {
+            ...prev.earthObservation.postEventSar,
+            name: isNisar ? 'Observation B (04 Jul 2026)' : 'During-event SAR (06 Dec)'
+          }
+        },
+        floodInundation: {
+          ...prev.floodInundation,
+          operaMappedWater: {
+            ...prev.floodInundation.operaMappedWater,
+            name: isNisar ? 'Backscatter Attenuation Zones (≤ -3 dB)' : 'OPERA mapped water'
+          },
+          candidateFloodwater: {
+            ...prev.floodInundation.candidateFloodwater,
+            name: isNisar ? 'Backscatter Enhancement Zones (≥ +2.5 dB)' : 'Candidate floodwater'
+          }
+        }
+      }));
+    }
   }, [selectedCaseId]);
 
-  const handleToggleLayer = (key: keyof typeof layers) => {
-    setLayers(prev => ({ ...prev, [key]: !prev[key] }));
+  // Handle Layer Updates
+  const handleUpdateLayer = (
+    group: keyof LayerGroupsState,
+    key: string,
+    updates: Partial<LayerStateItem>
+  ) => {
+    setLayerGroups((prev) => {
+      const groupObj = { ...prev[group] } as Record<string, LayerStateItem>;
+      if (groupObj[key]) {
+        groupObj[key] = { ...groupObj[key], ...updates };
+      }
+      return {
+        ...prev,
+        [group]: groupObj as any
+      };
+    });
   };
 
-  // Section 06 / 08 Reproducible Scientific Case Export
-  const handleExportCase = () => {
-    const curCase = cases.find(c => c.case_id === selectedCaseId);
-    const exportPackage = {
-      project: "PARALLAX / TERRA//PULSE",
-      challenge: "NASA Space Apps Challenge 2024",
-      specification: "Section 06 / 08 Scientific Deliverables Contract",
-      export_timestamp_utc: new Date().toISOString(),
-      case_study: {
-        id: selectedCaseId,
-        title: curCase?.title || curCase?.event_name || selectedCaseId,
-        location: curCase?.location || "Flood Study Basin",
-        coordinate_reference_system: curCase?.analysis_crs || "UTM Projection",
-        center_lon_lat: curCase?.center || [-51.3676, -29.8705],
-        bounding_box_wgs84: curCase?.aoi_bbox || null
-      },
-      threshold_configuration: {
-        specular_darkening_db: thresholds.darkening,
-        canopy_brightening_db: thresholds.brightening,
-        basis: "Dihedral double-bounce vs specular backscatter attenuation"
-      },
-      scientific_metrics: metrics,
-      reproducibility: {
-        methodology: "Dual-polarization Sentinel-1 L2 RTC-S1 backscatter change detection vs NASA OPERA L3 DSWx-S1",
-        primary_repository: "https://github.com/aadeshmax/TERRA-PULSE",
-        license: "MIT / Open Scientific Research"
-      },
-      features: geojsonData
-    };
-
-    const blob = new Blob([JSON.stringify(exportPackage, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `PARALLAX_${selectedCaseId}_Scientific_Export.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  // Synchronize Top Tools with Panels
+  const handleToggleTopTool = (tool: TopTool) => {
+    setActiveTool(tool);
+    if (tool === 'layers') {
+      setIsLayerExplorerOpen(!isLayerExplorerOpen);
+    } else if (tool === 'compare') {
+      setComparisonMode(comparisonMode === 'swipe' ? 'side-by-side' : 'swipe');
+    }
   };
+
+  const currentCase = cases.find((c) => c.case_id === selectedCaseId) || cases[0] || null;
+
+  // Compute dynamic center tile URL for timeline thumbnails
+  const getCenterTile = (layer: string) => {
+    if (!currentCase?.center || currentCase.center.length < 2) {
+      return `/data/cases/${selectedCaseId}/tiles/${layer}/12/2959/1895.png`;
+    }
+    const [lon, lat] = currentCase.center;
+    const z = 12;
+    const n = 1 << z;
+    const x = Math.floor(((lon + 180) / 360) * n);
+    const latRad = (lat * Math.PI) / 180;
+    const y = Math.floor(((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2) * n);
+    return `/data/cases/${selectedCaseId}/tiles/${layer}/${z}/${x}/${y}.png`;
+  };
+
+  // Real Timeline Observations from case manifest scenes
+  const scenes = currentCase?.scenes || [];
+  const isNisar = selectedCaseId === 'mumbai_nisar_2026' || Boolean(currentCase?.sensor?.platform?.includes('NISAR'));
+  const timelineObservations: TimelineObservation[] = [
+    {
+      id: 'pre_event',
+      label: isNisar ? 'Observation A' : 'Pre-event',
+      timestamp: scenes[0]?.acquisition_timestamp
+        ? new Date(scenes[0].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
+        : selectedCaseId === 'chennai_live_case'
+          ? 'Nov 24, 2024 00:32 UTC'
+          : isNisar
+            ? 'Jun 22, 2026 00:34 UTC'
+            : 'Apr 26, 2024 22:07 UTC',
+      sensor: isNisar ? `NISAR (${scenes[0]?.polarization || 'HH'})` : (scenes[0]?.polarization ? `Sentinel-1 (${scenes[0].polarization})` : 'Sentinel-1 (SAR)'),
+      thumbnailUrl: getCenterTile('pre_sar')
+    },
+    {
+      id: 'event',
+      label: isNisar ? 'Observation B' : 'During-Event',
+      timestamp: scenes[1]?.acquisition_timestamp
+        ? new Date(scenes[1].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
+        : selectedCaseId === 'chennai_live_case'
+          ? 'Dec 06, 2024 00:32 UTC'
+          : isNisar
+            ? 'Jul 04, 2026 00:34 UTC'
+            : 'May 08, 2024 22:07 UTC',
+      sensor: isNisar ? `NISAR (${scenes[1]?.polarization || 'HH'})` : (scenes[1]?.polarization ? `Sentinel-1 (${scenes[1].polarization})` : 'Sentinel-1 (SAR)'),
+      thumbnailUrl: getCenterTile('post_sar')
+    },
+    {
+      id: 'gap_overlay',
+      label: isNisar ? 'Radar Change (ΔHH)' : 'Detection Gap',
+      timestamp: isNisar ? '12-day NISAR Temporal Difference' : (currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap'),
+      sensor: isNisar ? 'NISAR L-band Analysis' : 'PARALLAX Analysis',
+      thumbnailUrl: getCenterTile(isNisar ? 'diff_db' : 'gap_overlay')
+    }
+  ];
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-radar-bg text-slate-100 overflow-hidden font-sans">
-      {/* 1. Header */}
-      <Header
+    <div className="relative w-screen h-screen overflow-hidden bg-midnight-bg text-midnight-primary font-sans select-none">
+      {/* 1. TOP COMMAND BAR */}
+      <HeaderCommandBar
         status={status}
-        onOpenCitations={() => setIsCitationOpen(true)}
+        cases={cases}
+        selectedCaseId={selectedCaseId}
+        onSelectCase={setSelectedCaseId}
+        activeTool={activeTool}
+        onToggleTool={handleToggleTopTool}
         onRunAnalysis={() => executeAnalysis(selectedCaseId)}
-        onExportCase={handleExportCase}
         loading={loading}
+        onOpenExport={() => setIsExportOpen(true)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onLocationSelect={(lat, lon) => setTargetCoords([lat, lon])}
       />
 
-      {/* 2. Main Workspace */}
-      <div className="flex flex-1 overflow-hidden relative w-full h-[calc(100vh-4rem)]">
-        {/* Left Control Sidebar */}
-        {isSidebarOpen && (
-          <Sidebar
-            cases={cases}
-            selectedCaseId={selectedCaseId}
-            onSelectCase={(id) => setSelectedCaseId(id)}
-            granules={[]}
-            layers={layers}
-            onToggleLayer={handleToggleLayer}
-            thresholds={thresholds}
-            onChangeThresholds={setThresholds}
-          />
-        )}
+      {/* 2. CENTRAL INTERACTIVE GEOSPATIAL MAP (MapLibre GL with Real XYZ Raster Tiles) */}
+      <main className="absolute inset-0 z-0">
+        <MapViewer
+          metrics={metrics}
+          geojsonData={geojsonData}
+          currentCase={currentCase}
+          caseId={selectedCaseId}
+          layers={layerGroups}
+          comparisonMode={comparisonMode}
+          onSelectComparisonMode={setComparisonMode}
+          sliderPos={sliderPos}
+          onSliderChange={setSliderPos}
+          targetCoords={targetCoords}
+          renderMode={renderMode}
+          onToggleRenderMode={setRenderMode}
+          blendMode={blendMode}
+          onSelectEvidence={(ev) => {
+            setIsAnalysisInspectorOpen(true);
+            setInspectorTab('evidence');
+          }}
+        />
+      </main>
 
-        {/* Central Map Viewer */}
-        <main className="flex-1 relative h-full min-w-0 overflow-hidden">
-          {/* Left Sidebar Collapse Handle */}
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="absolute top-1/2 -translate-y-1/2 left-0 z-30 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border-y border-r border-slate-700 px-1 py-3 rounded-r-md text-[10px] font-mono shadow-xl transition"
-            title={isSidebarOpen ? "Collapse Left Panel (Fullscreen Map)" : "Expand Left Panel"}
-          >
-            {isSidebarOpen ? '◀' : '▶'}
-          </button>
+      {/* 3. LEFT FLOATING LAYER EXPLORER */}
+      <LayerExplorer
+        layers={layerGroups}
+        onUpdateLayer={handleUpdateLayer}
+        isOpen={isLayerExplorerOpen}
+        onClose={() => setIsLayerExplorerOpen(false)}
+      />
 
-          {/* Right Metrics Panel Collapse Handle */}
-          <button
-            onClick={() => setIsMetricsOpen(!isMetricsOpen)}
-            className="absolute top-1/2 -translate-y-1/2 right-0 z-30 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border-y border-l border-slate-700 px-1 py-3 rounded-l-md text-[10px] font-mono shadow-xl transition"
-            title={isMetricsOpen ? "Collapse Right Panel (Fullscreen Map)" : "Expand Right Panel"}
-          >
-            {isMetricsOpen ? '▶' : '◀'}
-          </button>
+      {/* 4. RIGHT FLOATING ANALYSIS INSPECTOR (Genuine Statistics from Case Manifest & Backend) */}
+      <AnalysisInspector
+        metrics={metrics}
+        currentCase={currentCase}
+        isOpen={isAnalysisInspectorOpen}
+        onClose={() => setIsAnalysisInspectorOpen(false)}
+        activeTab={inspectorTab}
+        onSelectTab={setInspectorTab}
+        operaOpacity={layerGroups.floodInundation.operaMappedWater.opacity}
+        candidateOpacity={layerGroups.floodInundation.candidateFloodwater.opacity}
+        onUpdateOperaOpacity={(val) =>
+          handleUpdateLayer('floodInundation', 'operaMappedWater', { opacity: val })
+        }
+        onUpdateCandidateOpacity={(val) =>
+          handleUpdateLayer('floodInundation', 'candidateFloodwater', { opacity: val })
+        }
+        blendMode={blendMode}
+        onUpdateBlendMode={setBlendMode}
+        renderMode={renderMode}
+        onUpdateRenderMode={setRenderMode}
+        targetCoords={targetCoords}
+        onOpenEvidenceModal={(sec) => setEvidenceModalSection(sec)}
+      />
 
-          <MapViewer
-            metrics={metrics}
-            geojsonData={geojsonData}
-            caseId={selectedCaseId}
-            currentCase={cases.find(c => c.case_id === selectedCaseId)}
-            layers={layers}
-            sliderPos={sliderPos}
-            onSliderChange={(val) => setSliderPos(val)}
-          />
-        </main>
+      {/* 5. SATELLITE ACQUISITION TIMELINE (Real SAR Previews & Timestamps) */}
+      <AcquisitionTimeline
+        observations={timelineObservations}
+        selectedIndex={selectedTimelineIndex}
+        onSelectIndex={(idx) => {
+          setSelectedTimelineIndex(idx);
+          if (idx === 0) {
+            handleUpdateLayer('earthObservation', 'preEventSar', { visible: true });
+            handleUpdateLayer('earthObservation', 'postEventSar', { visible: false });
+          } else if (idx === 1) {
+            handleUpdateLayer('earthObservation', 'preEventSar', { visible: false });
+            handleUpdateLayer('earthObservation', 'postEventSar', { visible: true });
+          } else {
+            handleUpdateLayer('floodInundation', 'candidateFloodwater', { visible: true });
+          }
+        }}
+        isOpen={isTimelineOpen}
+        onToggleOpen={() => setIsTimelineOpen(!isTimelineOpen)}
+      />
 
-        {/* Right Scientific Metrics Panel */}
-        {isMetricsOpen && <MetricsPanel metrics={metrics} />}
-      </div>
+      {/* 6. SCIENTIFIC ANALYTICS DRAWER & REGIONAL STATS */}
+      <ScientificAnalytics
+        metrics={metrics}
+        currentCase={currentCase}
+        isOpen={true}
+        onToggleOpen={() => {}}
+      />
 
-      {/* Citations & Metadata Modal */}
-      <CitationModal
-        isOpen={isCitationOpen}
-        onClose={() => setIsCitationOpen(false)}
-        datasets={datasets}
+      {/* 7. EXPORT MODAL */}
+      <ExportModal
+        metrics={metrics}
+        currentCase={currentCase}
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+      />
+
+      {/* 8. SCIENTIFIC EVIDENCE DRILLDOWN MODAL */}
+      <EvidenceModal
+        sectionId={evidenceModalSection}
+        metrics={metrics}
+        currentCase={currentCase}
+        onClose={() => setEvidenceModalSection(null)}
       />
     </div>
   );
 };
+
 export default App;

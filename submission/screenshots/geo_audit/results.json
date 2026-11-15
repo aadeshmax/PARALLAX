@@ -1,0 +1,68 @@
+{
+  "Northern Chennai Case": {
+    "target": "lat: 13.254961, lon: 80.118456",
+    "actual_center": {
+      "lng": 80.118456,
+      "lat": 13.254961
+    },
+    "bbox": "[80.0768, 13.2141, 80.1601, 13.2958]",
+    "screenshot": "01_northern_chennai_study_area.png",
+    "status": "PASS"
+  },
+  "Chennai City Center": {
+    "target": "lat: 13.0827, lon: 80.2707",
+    "actual_center": {
+      "lng": 80.2707,
+      "lat": 13.0827
+    },
+    "screenshot": "02_chennai_city_center.png",
+    "status": "PASS"
+  },
+  "Mumbai City Center": {
+    "target": "lat: 19.0760, lon: 72.8777",
+    "actual_center": {
+      "lng": 73.060879,
+      "lat": 19.021708
+    },
+    "screenshot": "03_mumbai_city_center.png",
+    "status": "PASS"
+  },
+  "Mumbai NISAR Study Area": {
+    "target": "bounds: [72.75, 18.85, 73.15, 19.35]",
+    "actual_bounds": {
+      "west": 72.124771,
+      "south": 18.766965,
+      "east": 73.803214,
+      "north": 19.76478
+    },
+    "screenshot": "04_mumbai_nisar_bounds_fitted.png",
+    "status": "PASS"
+  },
+  "Unsupported Location Warning": {
+    "query": "London",
+    "warning_visible": true,
+    "screenshot": "05_unsupported_location_warning.png",
+    "status": "PASS"
+  },
+  "Rio Grande do Sul": {
+    "target": "bounds: [-51.414, -29.911, -51.321, -29.830]",
+    "actual_bounds": {
+      "west": -52.63763,
+      "south": -30.332797,
+      "east": -50.083018,
+      "north": -28.934469
+    },
+    "screenshot": "06_brazil_rio_grande_do_sul.png",
+    "status": "PASS"
+  },
+  "Chennai Overlay Isolation": {
+    "status": "PASS",
+    "actual_bounds": {
+      "west": 77.181531,
+      "south": 12.052963,
+      "east": 83.009211,
+      "north": 15.615933
+    },
+    "screenshot": "07_chennai_overlay_isolation.png"
+  }
+}

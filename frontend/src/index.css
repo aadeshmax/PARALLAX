@@ -4,37 +4,81 @@
 
 @layer base {
   body {
-    @apply antialiased selection:bg-cyan-500 selection:text-black;
+    @apply antialiased bg-midnight-bg text-midnight-primary select-none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
 }
 
 /* Custom scrollbars for data panels */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b0f19;
+  background: #060D17;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1f293d;
-  border-radius: 3px;
+  background: #203247;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #38bdf8;
+  background: #287BFF;
+}
+
+/* Range input styling for opacity controls */
+input[type="range"] {
+  @apply accent-midnight-accent bg-midnight-elevated cursor-pointer;
+  height: 4px;
+  border-radius: 2px;
 }
 
 /* Leaflet dark theme adjustments */
 .leaflet-container {
-  background-color: #0b0f19 !important;
+  background-color: #060D17 !important;
   font-family: inherit;
+  width: 100%;
+  height: 100%;
 }
+
 .leaflet-popup-content-wrapper {
-  background: #111827 !important;
-  color: #f1f5f9 !important;
-  border: 1px solid #1f293d;
+  background: #0B1522 !important;
+  color: #F1F5F9 !important;
+  border: 1px solid #203247;
   border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
 }
+
 .leaflet-popup-tip {
-  background: #111827 !important;
+  background: #0B1522 !important;
+}
+
+.leaflet-control-zoom {
+  border: 1px solid #203247 !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: #0B1522 !important;
+  color: #F1F5F9 !important;
+  border-bottom: 1px solid #203247 !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #111E2E !important;
+  color: #287BFF !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(6, 13, 23, 0.75) !important;
+  color: #64748B !important;
+  font-size: 10px !important;
+  border-top-left-radius: 4px;
+}
+
+.leaflet-control-attribution a {
+  color: #94A3B8 !important;
 }

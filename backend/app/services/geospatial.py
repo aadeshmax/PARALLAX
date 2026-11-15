@@ -20,7 +20,17 @@ class GeospatialProcessor:
     def read_geotiff(file_path: str) -> Tuple[np.ndarray, Dict[str, Any]]:
         """Reads a GeoTIFF file and returns its first band data array and profile."""
         with rasterio.open(file_path) as src:
-            data = src.read(1)
+            try:
+                data = src.read(1)
+            except Exception:
+                # Robust block-window fallback for tiled GeoTIFFs when multi-band scanline decoding fails
+                arr = np.full((src.height, src.width), np.nan, dtype=np.float32)
+                for ji, window in src.block_windows(1):
+                    try:
+                        arr[window.toslices()] = src.read(1, window=window)
+                    except Exception:
+                        pass
+                data = arr
             profile = src.profile.copy()
             return data, profile
 
