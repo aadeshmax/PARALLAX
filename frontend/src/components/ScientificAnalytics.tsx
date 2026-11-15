@@ -55,7 +55,7 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
       <div className="flex items-stretch shrink-0">
         <div className="flex items-center gap-3 p-3 rounded-2xl glass-panel shadow-glass h-full">
           {/* Card 1: Water Extent / Change Partition Bar Chart */}
-          <div className="flex flex-col w-32 pr-3 border-r border-midnight-border/50 justify-between h-full">
+          <div className="flex flex-col w-28 pr-2.5 border-r border-midnight-border/50 justify-between h-full">
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-midnight-secondary uppercase tracking-wider truncate">
                 {isNisar ? 'Change Partition' : 'Water Detected'}
@@ -88,7 +88,7 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
           </div>
 
           {/* Card 2: Backscatter Distribution Curve */}
-          <div className="flex flex-col w-36 pr-3 border-r border-midnight-border/50 justify-between h-full">
+          <div className="flex flex-col w-32 pr-2.5 border-r border-midnight-border/50 justify-between h-full">
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-midnight-secondary uppercase tracking-wider truncate">
                 Radar Ground Shift
@@ -127,7 +127,7 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
           </div>
 
           {/* Card 3: Flood Extent by Region */}
-          <div className="flex flex-col w-40 justify-between h-full">
+          <div className="flex flex-col w-36 justify-between h-full">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-bold text-midnight-secondary uppercase tracking-wider">
                 Top Flooded Areas

@@ -98,7 +98,7 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
   };
 
   return (
-    <div className="absolute top-16 right-3 z-20 w-80 lg:w-[380px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-5rem)] flex flex-col rounded-2xl glass-panel shadow-glass overflow-hidden pointer-events-auto transition-all duration-300">
+    <div className="absolute top-16 right-3 bottom-3 z-20 w-[360px] max-w-[calc(100vw-1.5rem)] flex flex-col rounded-2xl glass-panel shadow-glass overflow-hidden pointer-events-auto transition-all duration-300">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-midnight-border/70 bg-midnight-elevated/30">
         <div className="flex items-center gap-2">

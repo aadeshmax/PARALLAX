@@ -808,16 +808,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       {/* SWIPE COMPARISON OVERLAY (When in Swipe Mode) */}
       {comparisonMode === 'swipe' && (
         <>
-          {/* Top Pill Labels */}
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-4 py-1.5 rounded-full glass-pill shadow-pill pointer-events-none">
-            <span className="text-xs font-semibold text-midnight-opera px-2 py-0.5 rounded flex items-center gap-1">
+          {/* Top Pill Labels (Compact & Non-Crowding) */}
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full glass-pill shadow-pill pointer-events-none">
+            <span className="text-[11px] font-semibold text-midnight-opera flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-midnight-opera shadow-glow-cyan" />
-              Standard Water Map
+              OPERA Baseline
             </span>
             <span className="text-midnight-secondary text-xs">|</span>
-            <span className="text-xs font-semibold text-midnight-candidate px-2 py-0.5 rounded flex items-center gap-1">
+            <span className="text-[11px] font-semibold text-midnight-candidate flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-midnight-candidate shadow-glow-amber" />
-              Hidden Floodwater Uncovered
+              PARALLAX Analysis
             </span>
           </div>
 
@@ -851,7 +851,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
       {/* RIGHT SIDE MAP NAVIGATION TOOLBAR (Dynamic offset when Inspector is open) */}
       <div className={`absolute top-16 z-10 flex flex-col items-center gap-2 pointer-events-auto transition-all duration-300 ${
-        isInspectorOpen ? 'right-3 lg:right-[396px]' : 'right-3'
+        isInspectorOpen ? 'right-3 lg:right-[384px]' : 'right-3'
       }`}>
         {/* Basemap Switcher Dropdown */}
         <div className="relative">

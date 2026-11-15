@@ -310,7 +310,9 @@ export const App: React.FC = () => {
       />
 
       {/* 5. UNIFIED BOTTOM DOCK (Acquisition Timeline & Scientific Analytics) */}
-      <div className="absolute bottom-3 left-3 z-20 flex items-stretch gap-3 pointer-events-auto max-w-[calc(100vw-420px)] overflow-x-auto">
+      <div className={`absolute bottom-3 left-3 z-20 flex items-stretch gap-2.5 pointer-events-auto transition-all duration-300 ${
+        isAnalysisInspectorOpen ? 'max-w-[calc(100vw-390px)]' : 'max-w-[calc(100vw-24px)]'
+      } overflow-x-auto h-[168px]`}>
         <AcquisitionTimeline
           observations={timelineObservations}
           selectedIndex={selectedTimelineIndex}

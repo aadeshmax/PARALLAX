@@ -93,14 +93,14 @@ export const AcquisitionTimeline: React.FC<AcquisitionTimelineProps> = ({
                 <button
                   key={obs.id}
                   onClick={() => onSelectIndex(idx)}
-                  className={`flex flex-col w-44 rounded-xl border text-left p-2.5 transition relative overflow-hidden h-full justify-between ${
+                  className={`flex flex-col w-[150px] shrink-0 rounded-xl border text-left p-2 transition relative overflow-hidden h-full justify-between ${
                     isSelected
                       ? 'bg-midnight-elevated border-midnight-accent ring-1 ring-midnight-accent shadow-lg shadow-midnight-accent/15'
                       : 'bg-midnight-panel/80 border-midnight-border/60 hover:bg-midnight-elevated/60 hover:border-midnight-border'
                   }`}
                 >
                   {/* Real SAR Thumbnail Preview */}
-                  <div className="w-full h-16 rounded-lg bg-slate-900 border border-midnight-border/50 relative overflow-hidden mb-2 flex items-center justify-center">
+                  <div className="w-full h-14 rounded-lg bg-slate-900 border border-midnight-border/50 relative overflow-hidden mb-1.5 flex items-center justify-center">
                     {obs.thumbnailUrl ? (
                       <img
                         src={obs.thumbnailUrl}
