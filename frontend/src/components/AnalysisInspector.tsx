@@ -34,6 +34,7 @@ interface AnalysisInspectorProps {
   onOpenEvidenceModal: (section: string) => void;
   renderMode?: VisualizationMode;
   onUpdateRenderMode?: (mode: VisualizationMode) => void;
+  targetCoords?: [number, number] | null;
 }
 
 export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
@@ -51,7 +52,8 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
   onUpdateBlendMode,
   onOpenEvidenceModal,
   renderMode = 'radar',
-  onUpdateRenderMode
+  onUpdateRenderMode,
+  targetCoords
 }) => {
   const [copiedCitation, setCopiedCitation] = useState(false);
 
@@ -60,6 +62,15 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
   // Compute stats from real manifest or live backend metrics - NO HARDCODED PLACEHOLDERS
   const stats = currentCase?.statistics;
   const isNisar = currentCase?.case_id === 'mumbai_nisar_2026' || Boolean(currentCase?.sensor?.platform?.includes('NISAR'));
+
+  const isTargetOutsideAOI = Boolean(
+    targetCoords && currentCase?.aoi_bbox && (
+      targetCoords[1] < currentCase.aoi_bbox[0] - 0.05 ||
+      targetCoords[1] > currentCase.aoi_bbox[2] + 0.05 ||
+      targetCoords[0] < currentCase.aoi_bbox[1] - 0.05 ||
+      targetCoords[0] > currentCase.aoi_bbox[3] + 0.05
+    )
+  );
   const operaWaterKm2 = metrics?.opera_dswx_water_km2 ?? stats?.baseline_water_area_sqkm ?? (isNisar ? (stats?.persistent_tidal_water_km2 ?? 0) : 0);
   const candidateWaterKm2 = metrics?.candidate_inundated_veg_km2 ?? stats?.candidate_double_bounce_km2 ?? stats?.additional_candidate_area_sqkm ?? stats?.candidate_inundation_area_sqkm ?? 0;
   const totalAreaKm2 = metrics?.total_aoi_km2 ?? stats?.total_analyzed_area_km2 ?? stats?.total_valid_area_sqkm ?? 0;
@@ -131,6 +142,16 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <>
+            {isTargetOutsideAOI && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[11px] flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block text-amber-300 font-semibold">Location Outside Satellite Footprint</strong>
+                  <span>Active viewport is outside calibrated SAR coverage. Statistics below reflect the active case study.</span>
+                </div>
+              </div>
+            )}
+
             {/* Primary Twin Cards */}
             <div className="grid grid-cols-2 gap-2.5">
               {/* OPERA Baseline / Attenuation */}

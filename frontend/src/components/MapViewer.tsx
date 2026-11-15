@@ -53,6 +53,11 @@ const CASE_INSPECTION_SITES: Record<string, Array<{ id: string; name: string; ta
     { id: 'site-2', name: 'Site 2: Mithi River Spillway', tag: 'Confirmed Water (-11.2 dB)', coords: [72.880, 19.095], desc: 'Urban river channel overflow with severe specular radar drop', type: 'water' },
     { id: 'site-3', name: 'Site 3: Vikhroli Wetland Basin', tag: 'Canopy Reflection', coords: [72.920, 19.115], desc: 'Canopy-water dihedral scattering unmapped by standard optical DSWx', type: 'veg' }
   ],
+  mumbai_nisar_2026: [
+    { id: 'site-1', name: 'Site 1: Thane Creek Flamingo Sanctuary', tag: 'L-band Double-Bounce (+3.8 dB)', coords: [72.965, 19.085], desc: 'Extensive Avicennia mangrove canopy inundation and tidal channels', type: 'veg' },
+    { id: 'site-2', name: 'Site 2: Ulhas River Estuarine Corridor', tag: 'Specular Water (-8.4 dB)', coords: [73.010, 19.250], desc: 'Broad open estuarine channel with deep specular radar darkening', type: 'water' },
+    { id: 'site-3', name: 'Site 3: Elephanta Island Marine Margin', tag: 'Canopy Reflection', coords: [72.935, 18.960], desc: 'Coastal vegetation and rocky tidal margin double-bounce', type: 'veg' }
+  ],
   real_event_rio_grande_do_sul: [
     { id: 'site-1', name: 'Site 1: Jacuí Delta Canopy Gap', tag: 'Double-Bounce (+4.8 dB)', coords: [-51.345, -29.865], desc: 'Dihedral radar double-bounce under flooded woody gallery forest', type: 'veg' },
     { id: 'site-2', name: 'Site 2: Taquari River Confluence', tag: 'Confirmed Water (-8.6 dB)', coords: [-51.390, -29.890], desc: 'Severe specular radar attenuation confirmed by OPERA DSWx', type: 'water' },
@@ -97,16 +102,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   // Coordinate resolution per case
   const getCaseCenterAndZoom = (targetCaseId: string): { center: [number, number]; zoom: number } => {
     if (targetCaseId === 'chennai_live_case') {
-      return { center: [80.1185, 13.2550], zoom: 12 };
+      return { center: [80.118456, 13.254961], zoom: 12 };
     }
     if (targetCaseId === 'mumbai_monsoon_event') {
       return { center: [72.9038, 19.1206], zoom: 12 };
     }
     if (targetCaseId === 'mumbai_nisar_2026') {
-      return { center: [72.9500, 19.1000], zoom: 11.5 };
+      return { center: [72.950005, 19.100047], zoom: 11 };
     }
     if (targetCaseId === 'real_event_rio_grande_do_sul') {
-      return { center: [-51.3676, -29.8705], zoom: 12 };
+      return { center: [-51.367617, -29.870559], zoom: 12 };
     }
     if (targetCaseId === 'demo_flood_case') {
       return { center: [-4.624, 49.042], zoom: 11 };
@@ -114,7 +119,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     if (currentCase?.center) {
       return { center: [currentCase.center[0], currentCase.center[1]], zoom: 12 };
     }
-    return { center: [80.1185, 13.2550], zoom: 12 };
+    return { center: [80.118456, 13.254961], zoom: 12 };
   };
 
   // Safe layer and source removal
@@ -212,6 +217,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     map.on('load', () => {
       isMapLoadedRef.current = true;
       mapRef.current = map;
+      (window as any)._map = map;
       setupInteractions(map);
       loadCaseData(map, caseId);
       setTimeout(() => map.resize(), 150);
@@ -233,6 +239,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         // ignore
       }
       mapRef.current = null;
+      delete (window as any)._map;
     };
   }, []);
 
@@ -596,14 +603,23 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     }
   }, [targetCoords]);
 
-  // Center on current case
+  // Center on current case and fit genuine bounds
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapLoadedRef.current) return;
-    const { center, zoom } = getCaseCenterAndZoom(caseId);
-    map.flyTo({ center, zoom, speed: 1.2 });
+    if (currentCase?.aoi_bbox && currentCase.aoi_bbox.length === 4) {
+      const [w, s, e, n] = currentCase.aoi_bbox;
+      map.fitBounds([[w, s], [e, n]], {
+        padding: { top: 90, bottom: 90, left: 340, right: 380 },
+        maxZoom: 13.5,
+        speed: 1.2
+      });
+    } else {
+      const { center, zoom } = getCaseCenterAndZoom(caseId);
+      map.flyTo({ center, zoom, speed: 1.2 });
+    }
     loadCaseData(map, caseId);
-  }, [caseId]);
+  }, [caseId, currentCase]);
 
   // Handle Layer Opacity, Visibility and Weather-Radar Mode Changes
   useEffect(() => {

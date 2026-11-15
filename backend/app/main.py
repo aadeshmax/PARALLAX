@@ -67,6 +67,8 @@ app.include_router(jobs_router)
 frontend_dist = BASE_DIR / "frontend" / "dist"
 if frontend_dist.exists():
     app.mount("/app", StaticFiles(directory=str(frontend_dist), html=True), name="frontend_app")
+    if (frontend_dist / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="frontend_assets")
 
 @app.get("/")
 def root():

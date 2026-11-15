@@ -53,12 +53,14 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
   const currentCase = cases.find((c) => c.case_id === selectedCaseId) || cases[0];
 
   const PRESET_LOCATIONS = [
-    { name: 'Chennai, Tamil Nadu, India', lat: 13.0827, lon: 80.2707, caseId: 'chennai_live_case' },
-    { name: 'Adyar River Basin, Chennai', lat: 13.0012, lon: 80.2565, caseId: 'chennai_live_case' },
+    { name: 'Chennai City, Tamil Nadu, India', lat: 13.0827, lon: 80.2707, caseId: 'chennai_live_case' },
+    { name: 'Northern Chennai Study Area (OPERA 2024)', lat: 13.254961, lon: 80.118456, caseId: 'chennai_live_case' },
+    { name: 'Mumbai City, Maharashtra, India', lat: 19.0760, lon: 72.8777, caseId: 'mumbai_nisar_2026' },
     { name: 'Mumbai & Thane Creek (NISAR L-band 2026)', lat: 19.1000, lon: 72.9500, caseId: 'mumbai_nisar_2026' },
-    { name: 'Velachery Lake & Marshland', lat: 12.9815, lon: 80.2180, caseId: 'chennai_live_case' },
-    { name: 'Tiruvanmiyur Coastal Zone', lat: 12.9863, lon: 80.2613, caseId: 'chennai_live_case' },
-    { name: 'Rio Grande do Sul, Brazil (Benchmark)', lat: -30.0346, lon: -51.2177, caseId: 'demo_flood_case' }
+    { name: 'Adyar River Basin, Chennai', lat: 13.0012, lon: 80.2565, caseId: 'chennai_live_case' },
+    { name: 'Pallikaranai Marshlands, Chennai', lat: 12.9350, lon: 80.2180, caseId: 'chennai_live_case' },
+    { name: 'Thane Creek Flamingo Sanctuary, Mumbai', lat: 19.0850, lon: 72.9650, caseId: 'mumbai_nisar_2026' },
+    { name: 'Rio Grande do Sul, Brazil (Benchmark)', lat: -29.8705, lon: -51.3676, caseId: 'real_event_rio_grande_do_sul' }
   ];
 
   const filteredLocations = PRESET_LOCATIONS.filter((loc) =>
@@ -128,8 +130,13 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
                   </button>
                 ))
               ) : (
-                <div className="px-3 py-2 text-midnight-secondary text-xs">
-                  No preset locations matching "{searchQuery}"
+                <div className="p-3 text-midnight-secondary text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-medium">
+                    <span>⚠️ Outside Active Study Areas</span>
+                  </div>
+                  <p className="text-[11px] text-midnight-secondary/80">
+                    "{searchQuery}" is outside current radar swaths. Validated coverage is available for Chennai (OPERA C-band) and Mumbai (NISAR L-band).
+                  </p>
                 </div>
               )}
             </div>

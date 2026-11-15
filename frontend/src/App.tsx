@@ -303,6 +303,7 @@ export const App: React.FC = () => {
         onUpdateBlendMode={setBlendMode}
         renderMode={renderMode}
         onUpdateRenderMode={setRenderMode}
+        targetCoords={targetCoords}
         onOpenEvidenceModal={(sec) => setEvidenceModalSection(sec)}
       />
 
