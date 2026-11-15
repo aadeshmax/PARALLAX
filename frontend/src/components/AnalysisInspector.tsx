@@ -16,7 +16,7 @@ import {
   HelpCircle,
   FileCheck
 } from 'lucide-react';
-import { AnalysisMetrics, CaseStudy, InspectorTab } from '../types';
+import { AnalysisMetrics, CaseStudy, InspectorTab, VisualizationMode } from '../types';
 
 interface AnalysisInspectorProps {
   metrics: AnalysisMetrics | null;
@@ -32,6 +32,8 @@ interface AnalysisInspectorProps {
   blendMode: string;
   onUpdateBlendMode: (mode: string) => void;
   onOpenEvidenceModal: (section: string) => void;
+  renderMode?: VisualizationMode;
+  onUpdateRenderMode?: (mode: VisualizationMode) => void;
 }
 
 export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
@@ -47,7 +49,9 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
   onUpdateCandidateOpacity,
   blendMode,
   onUpdateBlendMode,
-  onOpenEvidenceModal
+  onOpenEvidenceModal,
+  renderMode = 'radar',
+  onUpdateRenderMode
 }) => {
   const [copiedCitation, setCopiedCitation] = useState(false);
 
@@ -281,6 +285,38 @@ export const AnalysisInspector: React.FC<AnalysisInspectorProps> = ({
                   <option value="normal">Normal</option>
                   <option value="overlay">Overlay</option>
                 </select>
+              </div>
+
+              {/* Rendering Mode Selector (Section 10 Requirement) */}
+              <div className="flex items-center justify-between pt-2 border-t border-midnight-border/40 text-xs">
+                <div className="flex flex-col">
+                  <span className="text-midnight-primary font-medium">Visualization Mode</span>
+                  <span className="text-[10px] text-midnight-secondary">
+                    {renderMode === 'radar' ? 'Weather radar antialiasing & atmospheric halo' : 'Pixel-exact GIS categorical grid'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 p-0.5 bg-midnight-elevated border border-midnight-border rounded-lg">
+                  <button
+                    onClick={() => onUpdateRenderMode && onUpdateRenderMode('radar')}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                      renderMode === 'radar'
+                        ? 'bg-midnight-accent text-white shadow'
+                        : 'text-midnight-secondary hover:text-midnight-primary'
+                    }`}
+                  >
+                    Radar
+                  </button>
+                  <button
+                    onClick={() => onUpdateRenderMode && onUpdateRenderMode('scientific')}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                      renderMode === 'scientific'
+                        ? 'bg-midnight-accent text-white shadow'
+                        : 'text-midnight-secondary hover:text-midnight-primary'
+                    }`}
+                  >
+                    Scientific
+                  </button>
+                </div>
               </div>
             </div>
           </>

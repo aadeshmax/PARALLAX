@@ -23,7 +23,8 @@ import {
   TopTool,
   LayerGroupsState,
   LayerStateItem,
-  TimelineObservation
+  TimelineObservation,
+  VisualizationMode
 } from './types';
 
 export const App: React.FC = () => {
@@ -46,6 +47,7 @@ export const App: React.FC = () => {
   const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('swipe');
   const [sliderPos, setSliderPos] = useState<number>(50);
   const [blendMode, setBlendMode] = useState<string>('multiply');
+  const [renderMode, setRenderMode] = useState<VisualizationMode>('radar');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [targetCoords, setTargetCoords] = useState<[number, number] | null>(null);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
@@ -232,6 +234,9 @@ export const App: React.FC = () => {
           sliderPos={sliderPos}
           onSliderChange={setSliderPos}
           targetCoords={targetCoords}
+          renderMode={renderMode}
+          onToggleRenderMode={setRenderMode}
+          blendMode={blendMode}
           onSelectEvidence={(ev) => {
             setIsAnalysisInspectorOpen(true);
             setInspectorTab('evidence');
@@ -265,6 +270,8 @@ export const App: React.FC = () => {
         }
         blendMode={blendMode}
         onUpdateBlendMode={setBlendMode}
+        renderMode={renderMode}
+        onUpdateRenderMode={setRenderMode}
         onOpenEvidenceModal={(sec) => setEvidenceModalSection(sec)}
       />
 

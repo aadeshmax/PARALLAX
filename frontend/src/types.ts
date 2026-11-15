@@ -113,6 +113,7 @@ export interface CaseStudy {
 }
 
 export type ComparisonMode = 'swipe' | 'side-by-side' | 'temporal' | 'difference';
+export type VisualizationMode = 'radar' | 'scientific';
 export type InspectorTab = 'overview' | 'evidence' | 'symbology' | 'provenance';
 export type TopTool = 'area' | 'measure' | 'layers' | 'compare' | null;
 

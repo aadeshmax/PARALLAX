@@ -89,12 +89,17 @@ def colormap_diff_db(arr: np.ndarray) -> Image.Image:
     return Image.fromarray(rgba, "RGBA")
 
 
-def colormap_mask(arr: np.ndarray, color_rgb: Tuple[int, int, int], alpha: int = 180) -> Image.Image:
-    """Renders a smooth, anti-aliased categorical mask with given color and alpha falloff."""
+def colormap_mask(arr: np.ndarray, color_rgb: Tuple[int, int, int], alpha: int = 195) -> Image.Image:
+    """
+    Renders a fluid, anti-aliased categorical mask with smooth subpixel boundary transitions
+    and atmospheric alpha falloff inspired by high-end weather radar systems.
+    """
     rgba = np.zeros((TILE_SIZE, TILE_SIZE, 4), dtype=np.uint8)
-    valid = np.isfinite(arr) & (arr > 0.08)
-    intensity = np.nan_to_num(np.clip(arr, 0.0, 1.0), nan=0.0)
-    alpha_arr = (intensity * alpha).astype(np.uint8)
+    valid = np.isfinite(arr) & (arr > 0.02)
+    # Smooth gamma falloff on intensity for anti-aliased sub-pixel boundaries
+    norm_val = np.nan_to_num(np.clip(arr, 0.0, 1.0), nan=0.0)
+    smooth_intensity = np.power(norm_val, 0.85)
+    alpha_arr = (smooth_intensity * alpha).astype(np.uint8)
     rgba[valid, 0] = color_rgb[0]
     rgba[valid, 1] = color_rgb[1]
     rgba[valid, 2] = color_rgb[2]
@@ -180,9 +185,9 @@ def generate_tiles_for_layer(
                     elif colormap_type == "diff_db":
                         img = colormap_diff_db(dest_tile)
                     elif colormap_type == "opera_water":
-                        img = colormap_mask(dest_tile, color_rgb=(6, 182, 212), alpha=180)
+                        img = colormap_mask(dest_tile, color_rgb=(50, 140, 255), alpha=195)
                     elif colormap_type == "gap_overlay":
-                        img = colormap_mask(dest_tile, color_rgb=(245, 158, 11), alpha=210)
+                        img = colormap_mask(dest_tile, color_rgb=(255, 176, 32), alpha=210)
                     else:
                         img = colormap_mask(dest_tile, color_rgb=(200, 200, 200), alpha=150)
 

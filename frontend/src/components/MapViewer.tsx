@@ -12,13 +12,16 @@ import {
   Compass,
   Navigation,
   Globe,
-  ChevronDown
+  ChevronDown,
+  Activity,
+  Layers
 } from 'lucide-react';
 import {
   AnalysisMetrics,
   CaseStudy,
   ComparisonMode,
-  LayerGroupsState
+  LayerGroupsState,
+  VisualizationMode
 } from '../types';
 
 interface MapViewerProps {
@@ -33,6 +36,9 @@ interface MapViewerProps {
   onSliderChange: (pos: number) => void;
   targetCoords?: [number, number] | null;
   onSelectEvidence?: (evidence: any) => void;
+  renderMode?: VisualizationMode;
+  onToggleRenderMode?: (mode: VisualizationMode) => void;
+  blendMode?: string;
 }
 
 // Field validation staging sites per case
@@ -69,7 +75,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   sliderPos,
   onSliderChange,
   targetCoords,
-  onSelectEvidence
+  onSelectEvidence,
+  renderMode = 'radar',
+  onToggleRenderMode,
+  blendMode = 'multiply'
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -296,13 +305,13 @@ export const MapViewer: React.FC<MapViewerProps> = ({
 
       const baseUrl = `/data/cases/${activeCaseId}/tiles`;
 
-      // Pre-SAR
+      // Pre-SAR (Continuous SAR backscatter with linear filtering and maxzoom 15)
       map.addSource('pre-sar', {
         type: 'raster',
         tiles: [`${baseUrl}/pre_sar/{z}/{x}/{y}.png`],
         tileSize: 256,
         minzoom: 11,
-        maxzoom: 14
+        maxzoom: 15
       });
       map.addLayer({
         id: 'pre-sar-layer',
@@ -310,18 +319,20 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         source: 'pre-sar',
         paint: {
           'raster-opacity': (layers.earthObservation.preEventSar.opacity / 100) * (comparisonMode === 'swipe' ? (1 - sliderPos / 100) : 1),
-          'raster-resampling': 'linear'
+          'raster-resampling': 'linear',
+          'raster-fade-duration': 300,
+          'raster-contrast': renderMode === 'radar' ? 0.12 : 0
         },
         layout: { visibility: layers.earthObservation.preEventSar.visible ? 'visible' : 'none' }
       }, 'basemap-labels');
 
-      // Post-SAR
+      // Post-SAR (During-Deluge SAR backscatter with linear filtering and maxzoom 15)
       map.addSource('post-sar', {
         type: 'raster',
         tiles: [`${baseUrl}/post_sar/{z}/{x}/{y}.png`],
         tileSize: 256,
         minzoom: 11,
-        maxzoom: 14
+        maxzoom: 15
       });
       map.addLayer({
         id: 'post-sar-layer',
@@ -329,18 +340,20 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         source: 'post-sar',
         paint: {
           'raster-opacity': (layers.earthObservation.postEventSar.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) : 1),
-          'raster-resampling': 'linear'
+          'raster-resampling': 'linear',
+          'raster-fade-duration': 300,
+          'raster-contrast': renderMode === 'radar' ? 0.12 : 0
         },
         layout: { visibility: layers.earthObservation.postEventSar.visible ? 'visible' : 'none' }
       }, 'basemap-labels');
 
-      // Diff-dB
+      // Diff-dB (Signed backscatter change with smooth bi-polar color ramp)
       map.addSource('diff-db', {
         type: 'raster',
         tiles: [`${baseUrl}/diff_db/{z}/{x}/{y}.png`],
         tileSize: 256,
         minzoom: 11,
-        maxzoom: 14
+        maxzoom: 15
       });
       map.addLayer({
         id: 'diff-db-layer',
@@ -348,37 +361,40 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         source: 'diff-db',
         paint: {
           'raster-opacity': layers.floodInundation.sarBackscatterChanges.opacity / 100,
-          'raster-resampling': 'linear'
+          'raster-resampling': 'linear',
+          'raster-fade-duration': 300,
+          'raster-contrast': renderMode === 'radar' ? 0.15 : 0
         },
         layout: { visibility: layers.floodInundation.sarBackscatterChanges.visible ? 'visible' : 'none' }
       }, 'basemap-labels');
 
-      // OPERA Water
+      // OPERA Water (Standard optical/SAR surface water baseline)
       map.addSource('opera-water', {
         type: 'raster',
         tiles: [`${baseUrl}/opera_water/{z}/{x}/{y}.png`],
         tileSize: 256,
         minzoom: 11,
-        maxzoom: 14
+        maxzoom: 15
       });
       map.addLayer({
         id: 'opera-water-layer',
         type: 'raster',
         source: 'opera-water',
         paint: {
-          'raster-opacity': layers.floodInundation.operaMappedWater.opacity / 100,
-          'raster-resampling': 'linear'
+          'raster-opacity': (layers.floodInundation.operaMappedWater.opacity / 100) * (comparisonMode === 'swipe' ? Math.max(0.2, (1 - sliderPos / 100)) : 1),
+          'raster-resampling': renderMode === 'radar' ? 'linear' : 'nearest',
+          'raster-fade-duration': 300
         },
         layout: { visibility: layers.floodInundation.operaMappedWater.visible ? 'visible' : 'none' }
       }, 'basemap-labels');
 
-      // Gap Overlay (Candidate Inundation)
+      // Gap Overlay (Candidate Inundation & Hidden Water)
       map.addSource('gap-overlay', {
         type: 'raster',
         tiles: [`${baseUrl}/gap_overlay/{z}/{x}/{y}.png`],
         tileSize: 256,
         minzoom: 11,
-        maxzoom: 14
+        maxzoom: 15
       });
       map.addLayer({
         id: 'gap-overlay-layer',
@@ -386,13 +402,14 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         source: 'gap-overlay',
         paint: {
           'raster-opacity': (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) : 1),
-          'raster-resampling': 'linear'
+          'raster-resampling': renderMode === 'radar' ? 'linear' : 'nearest',
+          'raster-fade-duration': 300
         },
         layout: { visibility: layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none' }
       }, 'basemap-labels');
 
       // Vector Regions GeoJSON
-      const vectorLayers = ['candidates-line', 'candidates-fill', 'burst-boundary-line'];
+      const vectorLayers = ['candidates-line', 'candidates-glow', 'candidates-fill', 'burst-boundary-line'];
       vectorLayers.forEach((l) => {
         if (map.getLayer(l)) map.removeLayer(l);
       });
@@ -404,38 +421,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         data: geojsonUrl
       });
 
-      // Polygons Fill
+      // Atmospheric Weather Radar Halo/Diffusion Line (Refined Radar Mode)
       map.addLayer({
-        id: 'candidates-fill',
-        type: 'fill',
-        source: 'regions-geojson',
-        paint: {
-          'fill-color': [
-            'match',
-            ['get', 'class_id'],
-            1, '#328CFF',
-            2, '#FFB020',
-            3, '#14B8A6',
-            4, '#FFB020',
-            '#FFB020'
-          ],
-          'fill-opacity': [
-            'match',
-            ['get', 'class_id'],
-            1, (layers.floodInundation.operaMappedWater.opacity / 100) * 0.45,
-            2, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.55 : 0.55),
-            0.35
-          ],
-          'fill-antialias': true
-        },
-        layout: {
-          visibility: layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none'
-        }
-      }, 'basemap-labels');
-
-      // Polygons Outline Line
-      map.addLayer({
-        id: 'candidates-line',
+        id: 'candidates-glow',
         type: 'line',
         source: 'regions-geojson',
         paint: {
@@ -448,7 +436,64 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             4, '#FFB020',
             '#FFB020'
           ],
-          'line-width': 1.6,
+          'line-width': renderMode === 'radar' ? 5.5 : 0.1,
+          'line-blur': renderMode === 'radar' ? 3.5 : 0,
+          'line-opacity': renderMode === 'radar'
+            ? (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.40 : 0.40)
+            : 0
+        },
+        layout: {
+          visibility: layers.floodInundation.candidateFloodwater.visible && renderMode === 'radar' ? 'visible' : 'none'
+        }
+      }, 'basemap-labels');
+
+      // Polygons Fill (Fluid atmospheric translucency & class-distinct symbology)
+      map.addLayer({
+        id: 'candidates-fill',
+        type: 'fill',
+        source: 'regions-geojson',
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'class_id'],
+            1, '#328CFF', // OPERA Mapped Water: Rich translucent blue
+            2, '#FFB020', // Inundated Veg: Warm golden amber
+            3, '#14B8A6', // Permanent Water: Restrained teal
+            4, '#FFB020', // PARALLAX-Only Candidate: Warm golden amber
+            '#FFB020'
+          ],
+          'fill-opacity': [
+            'match',
+            ['get', 'class_id'],
+            1, (layers.floodInundation.operaMappedWater.opacity / 100) * (comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) * 0.65 : 0.65),
+            2, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.70 : 0.70),
+            3, (layers.floodInundation.permanentWater.opacity / 100) * 0.65,
+            4, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.70 : 0.70),
+            0.50
+          ],
+          'fill-antialias': true
+        },
+        layout: {
+          visibility: layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none'
+        }
+      }, 'basemap-labels');
+
+      // Polygons Structural Contour Line
+      map.addLayer({
+        id: 'candidates-line',
+        type: 'line',
+        source: 'regions-geojson',
+        paint: {
+          'line-color': [
+            'match',
+            ['get', 'class_id'],
+            1, '#1E60C8',
+            2, '#D97706',
+            3, '#0D9488',
+            4, '#D97706',
+            '#D97706'
+          ],
+          'line-width': renderMode === 'radar' ? 1.4 : 1.0,
           'line-opacity': 0.85
         },
         layout: {
@@ -541,7 +586,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     loadCaseData(map, caseId);
   }, [caseId]);
 
-  // Handle Layer Opacity and Visibility Changes
+  // Handle Layer Opacity, Visibility and Weather-Radar Mode Changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isMapLoadedRef.current) return;
@@ -559,40 +604,76 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       map.setLayoutProperty('pre-sar-layer', 'visibility', layers.earthObservation.preEventSar.visible ? 'visible' : 'none');
       const op = (layers.earthObservation.preEventSar.opacity / 100) * (comparisonMode === 'swipe' ? (1 - sliderPos / 100) : 1);
       map.setPaintProperty('pre-sar-layer', 'raster-opacity', op);
+      map.setPaintProperty('pre-sar-layer', 'raster-contrast', renderMode === 'radar' ? 0.12 : 0);
     }
     // Post-SAR
     if (map.getLayer('post-sar-layer')) {
       map.setLayoutProperty('post-sar-layer', 'visibility', layers.earthObservation.postEventSar.visible ? 'visible' : 'none');
       const op = (layers.earthObservation.postEventSar.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) : 1);
       map.setPaintProperty('post-sar-layer', 'raster-opacity', op);
+      map.setPaintProperty('post-sar-layer', 'raster-contrast', renderMode === 'radar' ? 0.12 : 0);
+    }
+    // Diff dB
+    if (map.getLayer('diff-db-layer')) {
+      map.setLayoutProperty('diff-db-layer', 'visibility', layers.floodInundation.sarBackscatterChanges.visible ? 'visible' : 'none');
+      map.setPaintProperty('diff-db-layer', 'raster-opacity', layers.floodInundation.sarBackscatterChanges.opacity / 100);
+      map.setPaintProperty('diff-db-layer', 'raster-contrast', renderMode === 'radar' ? 0.15 : 0);
     }
     // OPERA Water
     if (map.getLayer('opera-water-layer')) {
       map.setLayoutProperty('opera-water-layer', 'visibility', layers.floodInundation.operaMappedWater.visible ? 'visible' : 'none');
-      map.setPaintProperty('opera-water-layer', 'raster-opacity', layers.floodInundation.operaMappedWater.opacity / 100);
+      const op = (layers.floodInundation.operaMappedWater.opacity / 100) * (comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) : 1);
+      map.setPaintProperty('opera-water-layer', 'raster-opacity', op);
+      map.setPaintProperty('opera-water-layer', 'raster-resampling', renderMode === 'radar' ? 'linear' : 'nearest');
     }
     // Gap Overlay (Candidate Floodwater)
     if (map.getLayer('gap-overlay-layer')) {
       map.setLayoutProperty('gap-overlay-layer', 'visibility', layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none');
       const op = (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) : 1);
       map.setPaintProperty('gap-overlay-layer', 'raster-opacity', op);
+      map.setPaintProperty('gap-overlay-layer', 'raster-resampling', renderMode === 'radar' ? 'linear' : 'nearest');
     }
-    // Diff dB
-    if (map.getLayer('diff-db-layer')) {
-      map.setLayoutProperty('diff-db-layer', 'visibility', layers.floodInundation.sarBackscatterChanges.visible ? 'visible' : 'none');
-      map.setPaintProperty('diff-db-layer', 'raster-opacity', layers.floodInundation.sarBackscatterChanges.opacity / 100);
+    // Atmospheric Weather Radar Halo/Diffusion Line
+    if (map.getLayer('candidates-glow')) {
+      const vis = layers.floodInundation.candidateFloodwater.visible && renderMode === 'radar';
+      map.setLayoutProperty('candidates-glow', 'visibility', vis ? 'visible' : 'none');
+      const candOp = layers.floodInundation.candidateFloodwater.opacity / 100;
+      const swipeCandFactor = comparisonMode === 'swipe' ? (sliderPos / 100) : 1;
+      map.setPaintProperty('candidates-glow', 'line-opacity', renderMode === 'radar' ? 0.40 * candOp * swipeCandFactor : 0);
+      map.setPaintProperty('candidates-glow', 'line-width', renderMode === 'radar' ? 5.5 : 0.1);
+      map.setPaintProperty('candidates-glow', 'line-blur', renderMode === 'radar' ? 3.5 : 0);
     }
-    // Vector Regions
-    if (map.getLayer('candidates-fill') && map.getLayer('candidates-line')) {
+    // Vector Regions Fill
+    if (map.getLayer('candidates-fill')) {
       const vis = layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none';
       map.setLayoutProperty('candidates-fill', 'visibility', vis);
+      const operaOp = layers.floodInundation.operaMappedWater.opacity / 100;
+      const candOp = layers.floodInundation.candidateFloodwater.opacity / 100;
+      const permOp = layers.floodInundation.permanentWater.opacity / 100;
+      const swipeCandFactor = comparisonMode === 'swipe' ? (sliderPos / 100) : 1;
+      const swipeOperaFactor = comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) : 1;
+
+      map.setPaintProperty('candidates-fill', 'fill-opacity', [
+        'match',
+        ['get', 'class_id'],
+        1, operaOp * 0.65 * swipeOperaFactor,
+        2, candOp * 0.70 * swipeCandFactor,
+        3, permOp * 0.65,
+        4, candOp * 0.70 * swipeCandFactor,
+        0.50
+      ]);
+    }
+    // Vector Regions Structural Contour Line
+    if (map.getLayer('candidates-line')) {
+      const vis = layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none';
       map.setLayoutProperty('candidates-line', 'visibility', vis);
+      map.setPaintProperty('candidates-line', 'line-width', renderMode === 'radar' ? 1.4 : 1.0);
     }
     // Boundary line
     if (map.getLayer('burst-boundary-line')) {
       map.setLayoutProperty('burst-boundary-line', 'visibility', layers.spatialContext.studyAreaBoundary.visible ? 'visible' : 'none');
     }
-  }, [layers, comparisonMode, sliderPos]);
+  }, [layers, comparisonMode, sliderPos, renderMode]);
 
   // Basemap switcher
   useEffect(() => {
@@ -774,6 +855,15 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           >
             3D
           </button>
+          <button
+            onClick={() => onToggleRenderMode && onToggleRenderMode(renderMode === 'radar' ? 'scientific' : 'radar')}
+            className={`p-2 transition font-mono text-[10px] font-bold ${
+              renderMode === 'radar' ? 'text-midnight-accent bg-midnight-elevated' : 'text-midnight-secondary hover:text-midnight-primary'
+            }`}
+            title={renderMode === 'radar' ? 'Active: Refined Radar Mode (Click for Scientific GIS Mode)' : 'Active: Scientific GIS Mode (Click for Refined Radar Mode)'}
+          >
+            {renderMode === 'radar' ? 'RADAR' : 'GIS'}
+          </button>
         </div>
       </div>
 
@@ -798,6 +888,17 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           Lat <span className="text-midnight-primary">{mouseCoords.lat}°</span> Lon{' '}
           <span className="text-midnight-primary">{mouseCoords.lon}°</span>
         </div>
+
+        <button
+          onClick={() => onToggleRenderMode && onToggleRenderMode(renderMode === 'radar' ? 'scientific' : 'radar')}
+          className="bg-midnight-panel/80 hover:bg-midnight-elevated px-2 py-0.5 rounded border border-midnight-border/40 flex items-center gap-1.5 transition pointer-events-auto cursor-pointer"
+          title="Toggle Rendering Mode: Refined Weather Radar vs Scientific GIS"
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${renderMode === 'radar' ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400'}`} />
+          <span className="uppercase text-[9px] font-semibold text-midnight-secondary">
+            {renderMode === 'radar' ? 'Mode: Refined Radar' : 'Mode: Scientific GIS'}
+          </span>
+        </button>
       </div>
     </div>
   );
