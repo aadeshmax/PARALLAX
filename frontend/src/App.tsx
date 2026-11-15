@@ -268,6 +268,8 @@ export const App: React.FC = () => {
           renderMode={renderMode}
           onToggleRenderMode={setRenderMode}
           blendMode={blendMode}
+          isInspectorOpen={isAnalysisInspectorOpen}
+          isTimelineOpen={isTimelineOpen}
           onSelectEvidence={(ev) => {
             setIsAnalysisInspectorOpen(true);
             setInspectorTab('evidence');
@@ -333,6 +335,7 @@ export const App: React.FC = () => {
         currentCase={currentCase}
         isOpen={true}
         onToggleOpen={() => {}}
+        isInspectorOpen={isAnalysisInspectorOpen}
       />
 
       {/* 7. EXPORT MODAL */}

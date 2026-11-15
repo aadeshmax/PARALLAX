@@ -40,6 +40,9 @@ export default {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"Geist Mono"', '"JetBrains Mono"', 'Menlo', 'Consolas', 'monospace']
       },
+      spacing: {
+        '88': '22rem',
+      },
       backdropBlur: {
         xs: '2px',
       }

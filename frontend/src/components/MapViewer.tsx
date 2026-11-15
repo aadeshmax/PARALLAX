@@ -39,6 +39,8 @@ interface MapViewerProps {
   renderMode?: VisualizationMode;
   onToggleRenderMode?: (mode: VisualizationMode) => void;
   blendMode?: string;
+  isInspectorOpen?: boolean;
+  isTimelineOpen?: boolean;
 }
 
 // Field validation staging sites per case
@@ -83,7 +85,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   onSelectEvidence,
   renderMode = 'radar',
   onToggleRenderMode,
-  blendMode = 'multiply'
+  blendMode = 'multiply',
+  isInspectorOpen = false,
+  isTimelineOpen = false
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -858,8 +862,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         ))}
       </div>
 
-      {/* RIGHT SIDE MAP NAVIGATION TOOLBAR */}
-      <div className="absolute top-20 right-3 z-10 flex flex-col items-center gap-2 pointer-events-auto">
+      {/* RIGHT SIDE MAP NAVIGATION TOOLBAR (Dynamic offset when Inspector is open) */}
+      <div className={`absolute top-20 z-10 flex flex-col items-center gap-2 pointer-events-auto transition-all duration-300 ${
+        isInspectorOpen ? 'right-3 lg:right-[374px]' : 'right-3'
+      }`}>
         {/* Basemap Switcher Dropdown */}
         <div className="relative">
           <button
@@ -960,8 +966,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM RIGHT MINIMAP INSET */}
-      <div className="absolute bottom-24 right-3 z-10 w-28 h-24 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-none hidden md:flex flex-col">
+      {/* BOTTOM RIGHT MINIMAP INSET (Auto-hides cleanly when Analysis Inspector is open) */}
+      <div className={`absolute z-10 w-28 h-24 rounded-xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl overflow-hidden pointer-events-none transition-all duration-300 ${
+        isInspectorOpen ? 'hidden' : 'bottom-24 right-3 hidden md:flex flex-col'
+      }`}>
         <div className="w-full h-full relative bg-slate-950/90 flex items-center justify-center">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#203247_1px,transparent_1px),linear-gradient(to_bottom,#203247_1px,transparent_1px)] bg-[size:14px_14px] opacity-30" />
           <div className="w-10 h-8 rounded border border-midnight-boundary bg-midnight-boundary/10 flex items-center justify-center">
@@ -970,8 +978,10 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM LEFT SCALE & COORDINATES READOUT */}
-      <div className="absolute bottom-2 left-3 z-10 flex items-center gap-4 text-[10px] font-mono text-midnight-secondary/80 pointer-events-none">
+      {/* BOTTOM LEFT SCALE & COORDINATES READOUT (Dynamic offset when Timeline is open) */}
+      <div className={`absolute bottom-2 z-10 flex items-center gap-3 text-[10px] font-mono text-midnight-secondary/80 pointer-events-none transition-all duration-300 ${
+        isTimelineOpen ? 'left-3 lg:left-[640px]' : 'left-3'
+      }`}>
         <div className="flex items-center gap-1.5">
           <div className="w-12 h-1 border-b-2 border-l-2 border-r-2 border-midnight-secondary/60" />
           <span>5 km</span>

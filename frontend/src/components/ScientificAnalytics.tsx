@@ -15,13 +15,15 @@ interface ScientificAnalyticsProps {
   currentCase?: CaseStudy | null;
   isOpen: boolean;
   onToggleOpen: () => void;
+  isInspectorOpen?: boolean;
 }
 
 export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
   metrics,
   currentCase,
   isOpen,
-  onToggleOpen
+  onToggleOpen,
+  isInspectorOpen = false
 }) => {
   const [showFullModal, setShowFullModal] = useState(false);
 
@@ -49,8 +51,10 @@ export const ScientificAnalytics: React.FC<ScientificAnalyticsProps> = ({
 
   return (
     <>
-      {/* Floating Bottom-Right Cards */}
-      <div className="absolute bottom-4 right-3 z-20 flex items-end gap-3 pointer-events-auto">
+      {/* Floating Bottom-Right Cards with dynamic inspector offset */}
+      <div className={`absolute bottom-4 z-20 flex items-end gap-3 pointer-events-auto transition-all duration-300 ${
+        isInspectorOpen ? 'right-3 lg:right-[374px]' : 'right-3'
+      }`}>
         <div className="flex items-center gap-3 p-3 rounded-2xl bg-midnight-panel/95 backdrop-blur-md border border-midnight-border shadow-2xl">
           {/* Card 1: Water Extent / Change Partition Bar Chart */}
           <div className="flex flex-col w-36 pr-3 border-r border-midnight-border/50">
