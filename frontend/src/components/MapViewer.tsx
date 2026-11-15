@@ -436,14 +436,22 @@ export const MapViewer: React.FC<MapViewerProps> = ({
             4, '#FFB020',
             '#FFB020'
           ],
-          'line-width': renderMode === 'radar' ? 5.5 : 0.1,
+          'line-width': renderMode === 'radar' ? 5.0 : 0.1,
           'line-blur': renderMode === 'radar' ? 3.5 : 0,
           'line-opacity': renderMode === 'radar'
-            ? (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.40 : 0.40)
+            ? [
+                'match',
+                ['get', 'class_id'],
+                1, (layers.floodInundation.operaMappedWater.opacity / 100) * (comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) * 0.40 : 0.40),
+                2, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.45 : 0.45),
+                3, (layers.floodInundation.permanentWater.opacity / 100) * 0.35,
+                4, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.45 : 0.45),
+                0.35
+              ]
             : 0
         },
         layout: {
-          visibility: layers.floodInundation.candidateFloodwater.visible && renderMode === 'radar' ? 'visible' : 'none'
+          visibility: (layers.floodInundation.candidateFloodwater.visible || layers.floodInundation.operaMappedWater.visible) && renderMode === 'radar' ? 'visible' : 'none'
         }
       }, 'basemap-labels');
 
@@ -465,16 +473,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           'fill-opacity': [
             'match',
             ['get', 'class_id'],
-            1, (layers.floodInundation.operaMappedWater.opacity / 100) * (comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) * 0.65 : 0.65),
-            2, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.70 : 0.70),
+            1, (layers.floodInundation.operaMappedWater.opacity / 100) * (comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) * 0.70 : 0.70),
+            2, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.72 : 0.72),
             3, (layers.floodInundation.permanentWater.opacity / 100) * 0.65,
-            4, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.70 : 0.70),
+            4, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.72 : 0.72),
             0.50
           ],
           'fill-antialias': true
         },
         layout: {
-          visibility: layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none'
+          visibility: (layers.floodInundation.candidateFloodwater.visible || layers.floodInundation.operaMappedWater.visible) ? 'visible' : 'none'
         }
       }, 'basemap-labels');
 
@@ -487,17 +495,25 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           'line-color': [
             'match',
             ['get', 'class_id'],
-            1, '#1E60C8',
-            2, '#D97706',
-            3, '#0D9488',
-            4, '#D97706',
-            '#D97706'
+            1, renderMode === 'radar' ? '#328CFF' : '#1E60C8',
+            2, renderMode === 'radar' ? '#FFB020' : '#D97706',
+            3, renderMode === 'radar' ? '#14B8A6' : '#0D9488',
+            4, renderMode === 'radar' ? '#FFB020' : '#D97706',
+            '#FFB020'
           ],
-          'line-width': renderMode === 'radar' ? 1.4 : 1.0,
-          'line-opacity': 0.85
+          'line-width': renderMode === 'radar' ? 1.2 : 1.0,
+          'line-opacity': [
+            'match',
+            ['get', 'class_id'],
+            1, (layers.floodInundation.operaMappedWater.opacity / 100) * (comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) * 0.80 : 0.80),
+            2, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.85 : 0.85),
+            3, (layers.floodInundation.permanentWater.opacity / 100) * 0.80,
+            4, (layers.floodInundation.candidateFloodwater.opacity / 100) * (comparisonMode === 'swipe' ? (sliderPos / 100) * 0.85 : 0.85),
+            0.80
+          ]
         },
         layout: {
-          visibility: layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none'
+          visibility: (layers.floodInundation.candidateFloodwater.visible || layers.floodInundation.operaMappedWater.visible) ? 'visible' : 'none'
         }
       }, 'basemap-labels');
 
@@ -635,17 +651,28 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     }
     // Atmospheric Weather Radar Halo/Diffusion Line
     if (map.getLayer('candidates-glow')) {
-      const vis = layers.floodInundation.candidateFloodwater.visible && renderMode === 'radar';
+      const vis = (layers.floodInundation.candidateFloodwater.visible || layers.floodInundation.operaMappedWater.visible) && renderMode === 'radar';
       map.setLayoutProperty('candidates-glow', 'visibility', vis ? 'visible' : 'none');
+      const operaOp = layers.floodInundation.operaMappedWater.opacity / 100;
       const candOp = layers.floodInundation.candidateFloodwater.opacity / 100;
+      const permOp = layers.floodInundation.permanentWater.opacity / 100;
       const swipeCandFactor = comparisonMode === 'swipe' ? (sliderPos / 100) : 1;
-      map.setPaintProperty('candidates-glow', 'line-opacity', renderMode === 'radar' ? 0.40 * candOp * swipeCandFactor : 0);
-      map.setPaintProperty('candidates-glow', 'line-width', renderMode === 'radar' ? 5.5 : 0.1);
+      const swipeOperaFactor = comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) : 1;
+      map.setPaintProperty('candidates-glow', 'line-opacity', renderMode === 'radar' ? [
+        'match',
+        ['get', 'class_id'],
+        1, operaOp * 0.40 * swipeOperaFactor,
+        2, candOp * 0.45 * swipeCandFactor,
+        3, permOp * 0.35,
+        4, candOp * 0.45 * swipeCandFactor,
+        0.35
+      ] : 0);
+      map.setPaintProperty('candidates-glow', 'line-width', renderMode === 'radar' ? 5.0 : 0.1);
       map.setPaintProperty('candidates-glow', 'line-blur', renderMode === 'radar' ? 3.5 : 0);
     }
     // Vector Regions Fill
     if (map.getLayer('candidates-fill')) {
-      const vis = layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none';
+      const vis = (layers.floodInundation.candidateFloodwater.visible || layers.floodInundation.operaMappedWater.visible) ? 'visible' : 'none';
       map.setLayoutProperty('candidates-fill', 'visibility', vis);
       const operaOp = layers.floodInundation.operaMappedWater.opacity / 100;
       const candOp = layers.floodInundation.candidateFloodwater.opacity / 100;
@@ -656,24 +683,71 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       map.setPaintProperty('candidates-fill', 'fill-opacity', [
         'match',
         ['get', 'class_id'],
-        1, operaOp * 0.65 * swipeOperaFactor,
-        2, candOp * 0.70 * swipeCandFactor,
+        1, operaOp * 0.70 * swipeOperaFactor,
+        2, candOp * 0.72 * swipeCandFactor,
         3, permOp * 0.65,
-        4, candOp * 0.70 * swipeCandFactor,
+        4, candOp * 0.72 * swipeCandFactor,
         0.50
       ]);
     }
     // Vector Regions Structural Contour Line
     if (map.getLayer('candidates-line')) {
-      const vis = layers.floodInundation.candidateFloodwater.visible ? 'visible' : 'none';
+      const vis = (layers.floodInundation.candidateFloodwater.visible || layers.floodInundation.operaMappedWater.visible) ? 'visible' : 'none';
       map.setLayoutProperty('candidates-line', 'visibility', vis);
-      map.setPaintProperty('candidates-line', 'line-width', renderMode === 'radar' ? 1.4 : 1.0);
+      const operaOp = layers.floodInundation.operaMappedWater.opacity / 100;
+      const candOp = layers.floodInundation.candidateFloodwater.opacity / 100;
+      const permOp = layers.floodInundation.permanentWater.opacity / 100;
+      const swipeCandFactor = comparisonMode === 'swipe' ? (sliderPos / 100) : 1;
+      const swipeOperaFactor = comparisonMode === 'swipe' ? Math.max(0.15, (1 - sliderPos / 100)) : 1;
+
+      map.setPaintProperty('candidates-line', 'line-width', renderMode === 'radar' ? 1.2 : 1.0);
+      map.setPaintProperty('candidates-line', 'line-color', [
+        'match',
+        ['get', 'class_id'],
+        1, renderMode === 'radar' ? '#328CFF' : '#1E60C8',
+        2, renderMode === 'radar' ? '#FFB020' : '#D97706',
+        3, renderMode === 'radar' ? '#14B8A6' : '#0D9488',
+        4, renderMode === 'radar' ? '#FFB020' : '#D97706',
+        '#FFB020'
+      ]);
+      map.setPaintProperty('candidates-line', 'line-opacity', [
+        'match',
+        ['get', 'class_id'],
+        1, operaOp * 0.80 * swipeOperaFactor,
+        2, candOp * 0.85 * swipeCandFactor,
+        3, permOp * 0.80,
+        4, candOp * 0.85 * swipeCandFactor,
+        0.80
+      ]);
     }
     // Boundary line
     if (map.getLayer('burst-boundary-line')) {
       map.setLayoutProperty('burst-boundary-line', 'visibility', layers.spatialContext.studyAreaBoundary.visible ? 'visible' : 'none');
     }
   }, [layers, comparisonMode, sliderPos, renderMode]);
+
+  // Dynamically swap GeoJSON between Refined Radar Mode (smooth contours) and Scientific GIS Mode (raw 30m pixels)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !isMapLoadedRef.current) return;
+    const source = map.getSource('regions-geojson') as maplibregl.GeoJSONSource;
+    if (!source) return;
+
+    const activeId = caseId || currentCase?.case_id || 'chennai_live_case';
+    const targetUrl = renderMode === 'radar'
+      ? `/data/cases/${activeId}/regions.geojson`
+      : `/data/cases/${activeId}/regions_raw.geojson`;
+
+    fetch(targetUrl)
+      .then((res) => {
+        if (res.ok) return res.json();
+        return fetch(`/data/cases/${activeId}/regions.geojson`).then((r) => r.json());
+      })
+      .then((data) => {
+        if (source && data) source.setData(data);
+      })
+      .catch((err) => console.warn('Could not switch geojson mode:', err));
+  }, [renderMode, caseId, currentCase]);
 
   // Basemap switcher
   useEffect(() => {
