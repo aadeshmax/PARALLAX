@@ -1,0 +1,92 @@
+{
+  "schema_version": "2.0.0",
+  "case_id": "mumbai_nisar_2026",
+  "title": "Mumbai & Thane Creek \u2014 NISAR L-band Temporal Radar Change (2026)",
+  "event_name": "NISAR L-band Monsoon Surface-Change Investigation",
+  "location": "Mumbai Metropolitan Region & Thane Creek, Maharashtra, India",
+  "aoi_bbox": [
+    72.750079,
+    18.845621,
+    73.149932,
+    19.354474
+  ],
+  "center": [
+    72.950005,
+    19.100047
+  ],
+  "analysis_crs": "EPSG:32643",
+  "grid_resolution": [
+    10.0,
+    10.0
+  ],
+  "sensor": {
+    "platform": "NISAR (NASA-ISRO SAR Mission)",
+    "instrument": "LSAR (L-band Synthetic Aperture Radar)",
+    "center_frequency_ghz": 1.2575,
+    "wavelength_cm": 23.84,
+    "product_type": "Level-2 Geocoded Polarimetric Covariance (GCOV)",
+    "product_maturity": "PROVISIONAL",
+    "processing_version": "v1.0"
+  },
+  "scenes": [
+    {
+      "scene_id": "NISAR_L2_PR_GCOV_023_113_A_011_4005_DHDH_A_20260622T003449_20260622T003524_P05023_N_F_J_001",
+      "granule_concept_id": "G4245290530-ASF",
+      "acquisition_timestamp": "2026-06-22T00:34:49Z",
+      "orbit_cycle": 23,
+      "track": 113,
+      "direction": "ascending",
+      "frame": 11,
+      "bandwidth_mhz": 40,
+      "polarization": "HH",
+      "local_raster": "nisar_obs_a_hh.tif"
+    },
+    {
+      "scene_id": "NISAR_L2_PR_GCOV_024_113_A_011_4005_DHDH_A_20260704T003449_20260704T003523_P05023_N_F_J_001",
+      "granule_concept_id": "G4248106091-ASF",
+      "acquisition_timestamp": "2026-07-04T00:34:49Z",
+      "orbit_cycle": 24,
+      "track": 113,
+      "direction": "ascending",
+      "frame": 11,
+      "bandwidth_mhz": 40,
+      "polarization": "HH",
+      "local_raster": "nisar_obs_b_hh.tif"
+    }
+  ],
+  "temporal_baseline_days": 12.0,
+  "reference_product": {
+    "product_name": "NASA Earthdata Harmony Customization Service",
+    "service_name": "Harmony GDAL Adapter (S4389714698-ASF)",
+    "source_archive": "NASA Alaska Satellite Facility (ASF DAAC)",
+    "doi": "https://doi.org/10.5067/NISAR-L2-GCOV-V1"
+  },
+  "provenance": {
+    "source": "NASA/ISRO NISAR Project",
+    "archive": "NASA Alaska Satellite Facility (ASF DAAC)",
+    "verified": true,
+    "demonstration_mode": false,
+    "data_label": "live_nisar_earthdata_harmony",
+    "harmony_job_a": "6d8d1723-c748-47a5-a87b-5ee6f450a5e7",
+    "harmony_job_b": "7884a68c-f8c7-4c38-993b-ef10825f5516"
+  },
+  "statistics": {
+    "total_analyzed_area_km2": 2330.44,
+    "potential_surface_water_attenuation_km2": 2.85,
+    "potential_inundation_enhancement_km2": 571.13,
+    "delta_hh_mean_db": 1.25,
+    "delta_hh_median_db": 1.25,
+    "delta_hh_std_db": 3.26,
+    "sensor_spatial_resolution_m": 10.0,
+    "polarization": "HH"
+  },
+  "scientific_limitations": [
+    "Provisional product maturity level: Flight data acquired July 2026, radiometric calibration validated.",
+    "12-day temporal change reflects coupled hydrological, tidal, and surface roughness dynamics.",
+    "Positive backscatter enhancement (ΔHH >= +2.5 dB) represents candidate anomalies; potential physical causes include woody vegetation double-bounce, volumetric soil moisture, mangrove phenology, and urban dihedral scattering.",
+    "Negative backscatter attenuation (ΔHH <= -3.0 dB) represents potential surface water change, intertidal mudflat variation, or smooth saturated soil.",
+    "Direct subtraction of C-band from L-band is scientifically invalid; cross-sensor synthesis requires coincident acquisitions and physical transfer models."
+  ],
+  "regions_url": "/data/cases/mumbai_nisar_2026/regions.geojson",
+  "evidence_mode": "live_nisar_flight_observation"
+}

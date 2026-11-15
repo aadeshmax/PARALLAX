@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
-from app.config import settings
+from app.config import settings, BASE_DIR
 from app.database import init_db, SessionLocal
 from app.auth.earthdata import auth_manager
 from app.routers.nasa import router as nasa_router
@@ -63,13 +63,19 @@ app.include_router(nasa_router)
 app.include_router(analysis_router)
 app.include_router(jobs_router)
 
+# Mount compiled production frontend if available
+frontend_dist = BASE_DIR / "frontend" / "dist"
+if frontend_dist.exists():
+    app.mount("/app", StaticFiles(directory=str(frontend_dist), html=True), name="frontend_app")
+
 @app.get("/")
 def root():
     return {
         "service": "PARALLAX NASA Earthdata Service",
         "status": "online",
         "docs_url": "/docs",
-        "supported_datasets": ["OPERA_L3_DSWX-S1_V1", "OPERA_L2_RTC-S1_V1"]
+        "app_url": "/app/",
+        "supported_datasets": ["OPERA_L3_DSWX-S1_V1", "OPERA_L2_RTC-S1_V1", "NISAR_L2_PR_GCOV_001"]
     }
 
 @app.get("/health")

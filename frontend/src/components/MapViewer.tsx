@@ -102,6 +102,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
     if (targetCaseId === 'mumbai_monsoon_event') {
       return { center: [72.9038, 19.1206], zoom: 12 };
     }
+    if (targetCaseId === 'mumbai_nisar_2026') {
+      return { center: [72.9500, 19.1000], zoom: 11.5 };
+    }
     if (targetCaseId === 'real_event_rio_grande_do_sul') {
       return { center: [-51.3676, -29.8705], zoom: 12 };
     }
@@ -310,7 +313,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         type: 'raster',
         tiles: [`${baseUrl}/pre_sar/{z}/{x}/{y}.png`],
         tileSize: 256,
-        minzoom: 11,
+        minzoom: 10,
         maxzoom: 15
       });
       map.addLayer({
@@ -331,7 +334,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         type: 'raster',
         tiles: [`${baseUrl}/post_sar/{z}/{x}/{y}.png`],
         tileSize: 256,
-        minzoom: 11,
+        minzoom: 10,
         maxzoom: 15
       });
       map.addLayer({
@@ -352,7 +355,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         type: 'raster',
         tiles: [`${baseUrl}/diff_db/{z}/{x}/{y}.png`],
         tileSize: 256,
-        minzoom: 11,
+        minzoom: 10,
         maxzoom: 15
       });
       map.addLayer({
@@ -373,7 +376,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         type: 'raster',
         tiles: [`${baseUrl}/opera_water/{z}/{x}/{y}.png`],
         tileSize: 256,
-        minzoom: 11,
+        minzoom: 10,
         maxzoom: 15
       });
       map.addLayer({
@@ -393,7 +396,7 @@ export const MapViewer: React.FC<MapViewerProps> = ({
         type: 'raster',
         tiles: [`${baseUrl}/gap_overlay/{z}/{x}/{y}.png`],
         tileSize: 256,
-        minzoom: 11,
+        minzoom: 10,
         maxzoom: 15
       });
       map.addLayer({

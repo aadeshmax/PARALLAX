@@ -109,6 +109,15 @@ export interface CaseStudy {
     acquisition_timestamp?: string;
     polarization?: string;
   }>;
+  sensor?: {
+    platform?: string;
+    instrument?: string;
+    center_frequency_ghz?: number;
+    wavelength_cm?: number;
+    product_type?: string;
+    product_maturity?: string;
+    [key: string]: any;
+  };
   reference_product?: any;
 }
 

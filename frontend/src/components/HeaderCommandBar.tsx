@@ -55,6 +55,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
   const PRESET_LOCATIONS = [
     { name: 'Chennai, Tamil Nadu, India', lat: 13.0827, lon: 80.2707, caseId: 'chennai_live_case' },
     { name: 'Adyar River Basin, Chennai', lat: 13.0012, lon: 80.2565, caseId: 'chennai_live_case' },
+    { name: 'Mumbai & Thane Creek (NISAR L-band 2026)', lat: 19.1000, lon: 72.9500, caseId: 'mumbai_nisar_2026' },
     { name: 'Velachery Lake & Marshland', lat: 12.9815, lon: 80.2180, caseId: 'chennai_live_case' },
     { name: 'Tiruvanmiyur Coastal Zone', lat: 12.9863, lon: 80.2613, caseId: 'chennai_live_case' },
     { name: 'Rio Grande do Sul, Brazil (Benchmark)', lat: -30.0346, lon: -51.2177, caseId: 'demo_flood_case' }
@@ -83,7 +84,7 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
               PARALLAX
             </span>
             <span className="text-[10px] text-midnight-secondary font-medium tracking-wide">
-              Flood Intelligence
+              NISAR-Powered Surface Change Intelligence
             </span>
           </div>
         </div>
@@ -205,6 +206,8 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
               <span className="font-mono text-xs font-medium">
                 {currentCase?.case_id === 'chennai_live_case'
                   ? 'Nov 24 - Dec 06, 2024'
+                  : currentCase?.case_id === 'mumbai_nisar_2026'
+                  ? 'Jun 22 - Jul 04, 2026'
                   : 'Apr 25 - May 02, 2025'}
               </span>
             </div>

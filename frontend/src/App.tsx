@@ -122,6 +122,32 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (selectedCaseId) {
       executeAnalysis(selectedCaseId);
+      const isNisar = selectedCaseId === 'mumbai_nisar_2026';
+      setLayerGroups((prev) => ({
+        ...prev,
+        earthObservation: {
+          ...prev.earthObservation,
+          preEventSar: {
+            ...prev.earthObservation.preEventSar,
+            name: isNisar ? 'Observation A (22 Jun 2026)' : 'Pre-event SAR (24 Nov)'
+          },
+          postEventSar: {
+            ...prev.earthObservation.postEventSar,
+            name: isNisar ? 'Observation B (04 Jul 2026)' : 'During-event SAR (06 Dec)'
+          }
+        },
+        floodInundation: {
+          ...prev.floodInundation,
+          operaMappedWater: {
+            ...prev.floodInundation.operaMappedWater,
+            name: isNisar ? 'Backscatter Attenuation Zones (≤ -3 dB)' : 'OPERA mapped water'
+          },
+          candidateFloodwater: {
+            ...prev.floodInundation.candidateFloodwater,
+            name: isNisar ? 'Backscatter Enhancement Zones (≥ +2.5 dB)' : 'Candidate floodwater'
+          }
+        }
+      }));
     }
   }, [selectedCaseId]);
 
@@ -171,35 +197,40 @@ export const App: React.FC = () => {
 
   // Real Timeline Observations from case manifest scenes
   const scenes = currentCase?.scenes || [];
+  const isNisar = selectedCaseId === 'mumbai_nisar_2026' || Boolean(currentCase?.sensor?.platform?.includes('NISAR'));
   const timelineObservations: TimelineObservation[] = [
     {
       id: 'pre_event',
-      label: 'Pre-event',
+      label: isNisar ? 'Observation A' : 'Pre-event',
       timestamp: scenes[0]?.acquisition_timestamp
         ? new Date(scenes[0].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
         : selectedCaseId === 'chennai_live_case'
           ? 'Nov 24, 2024 00:32 UTC'
-          : 'Apr 26, 2024 22:07 UTC',
-      sensor: scenes[0]?.polarization ? `Sentinel-1 (${scenes[0].polarization})` : 'Sentinel-1 (SAR)',
+          : isNisar
+            ? 'Jun 22, 2026 00:34 UTC'
+            : 'Apr 26, 2024 22:07 UTC',
+      sensor: isNisar ? `NISAR (${scenes[0]?.polarization || 'HH'})` : (scenes[0]?.polarization ? `Sentinel-1 (${scenes[0].polarization})` : 'Sentinel-1 (SAR)'),
       thumbnailUrl: getCenterTile('pre_sar')
     },
     {
       id: 'event',
-      label: 'During-Event',
+      label: isNisar ? 'Observation B' : 'During-Event',
       timestamp: scenes[1]?.acquisition_timestamp
         ? new Date(scenes[1].acquisition_timestamp).toUTCString().replace('GMT', 'UTC')
         : selectedCaseId === 'chennai_live_case'
           ? 'Dec 06, 2024 00:32 UTC'
-          : 'May 08, 2024 22:07 UTC',
-      sensor: scenes[1]?.polarization ? `Sentinel-1 (${scenes[1].polarization})` : 'Sentinel-1 (SAR)',
+          : isNisar
+            ? 'Jul 04, 2026 00:34 UTC'
+            : 'May 08, 2024 22:07 UTC',
+      sensor: isNisar ? `NISAR (${scenes[1]?.polarization || 'HH'})` : (scenes[1]?.polarization ? `Sentinel-1 (${scenes[1].polarization})` : 'Sentinel-1 (SAR)'),
       thumbnailUrl: getCenterTile('post_sar')
     },
     {
       id: 'gap_overlay',
-      label: 'Detection Gap',
-      timestamp: currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap',
-      sensor: 'PARALLAX Analysis',
-      thumbnailUrl: getCenterTile('gap_overlay')
+      label: isNisar ? 'Radar Change (ΔHH)' : 'Detection Gap',
+      timestamp: isNisar ? '12-day NISAR Temporal Difference' : (currentCase?.reference_product?.product_name || 'OPERA DSWx vs SAR Gap'),
+      sensor: isNisar ? 'NISAR L-band Analysis' : 'PARALLAX Analysis',
+      thumbnailUrl: getCenterTile(isNisar ? 'diff_db' : 'gap_overlay')
     }
   ];
 

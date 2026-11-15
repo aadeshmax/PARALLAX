@@ -1,0 +1,18 @@
+{
+  "obs_a_hh": {
+    "id": "6d8d1723-c748-47a5-a87b-5ee6f450a5e7",
+    "status": "successful",
+    "granule": "G4245290530-ASF",
+    "data_links": [
+      "https://harmony.earthdata.nasa.gov/service-results/harmony-prod-staging/public/6d8d1723-c748-47a5-a87b-5ee6f450a5e7/467331688/NISAR_L2_PR_GCOV_023_113_A_011_4005_DHDH_A_20260622T003449_20260622T003524_P05023_N_F_J_001_science_LSAR_GCOV_grids_frequencyA_HHHH_subsetted.tif"
+    ]
+  },
+  "obs_b_hh": {
+    "id": "7884a68c-f8c7-4c38-993b-ef10825f5516",
+    "status": "successful",
+    "granule": "G4248106091-ASF",
+    "data_links": [
+      "https://harmony.earthdata.nasa.gov/service-results/harmony-prod-staging/public/7884a68c-f8c7-4c38-993b-ef10825f5516/467332179/NISAR_L2_PR_GCOV_024_113_A_011_4005_DHDH_A_20260704T003449_20260704T003523_P05023_N_F_J_001_science_LSAR_GCOV_grids_frequencyA_HHHH_subsetted.tif"
+    ]
+  }
+}
